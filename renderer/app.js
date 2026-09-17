@@ -457,6 +457,7 @@ async function roll() {
       await reloadConfig();
       return openSetup();
     }
+    $('#errorTitle').textContent = ERROR_TITLES[res.code] || 'Что-то пошло не так';
     $('#errorText').textContent = res.error;
     setStage('error');
     return;
@@ -464,6 +465,14 @@ async function roll() {
   showGame(res.data);
   addToHistory(res.data);
 }
+
+const ERROR_TITLES = {
+  NO_RESULTS: 'Ничего не нашлось',
+  NO_MATCH: 'Ничего не нашлось',
+  SAMPLE_LIMIT: 'Упёрлись в лимит проверки',
+  RATE_LIMIT: 'Steam ограничил запросы',
+  NETWORK: 'Нет связи со Steam',
+};
 
 function showGame(g) {
   state.current = g;
