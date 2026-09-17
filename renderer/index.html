@@ -146,14 +146,14 @@
             <button data-value="free">Бесплатно</button>
             <button data-value="paid">Платные</button>
           </div>
-          <div class="range-inputs">
+          <div class="range-inputs paid-only">
             <input type="number" min="0" placeholder="от" data-f="priceMin">
             <span class="dash">—</span>
             <input type="number" min="0" placeholder="до" data-f="priceMax">
             <span class="currency" id="currencyLabel">₽</span>
           </div>
-          <label class="check"><input type="checkbox" data-f="onSale"><span>Только со скидкой</span></label>
-          <label class="select-field">
+          <label class="check paid-only"><input type="checkbox" data-f="onSale"><span>Только со скидкой</span></label>
+          <label class="select-field paid-only">
             <span>Скидка от</span>
             <select data-f="minDiscount">
               <option value="0">любой</option>

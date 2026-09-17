@@ -202,7 +202,7 @@ function applyPreset(preset) {
     state.filters = { ...D.DEFAULT_FILTERS, ...keep };
     state.preset = null;
   } else {
-    state.filters = { ...D.DEFAULT_FILTERS, ...keep, ...preset.filters };
+    state.filters = normalizeFilters({ ...D.DEFAULT_FILTERS, ...keep, ...preset.filters });
     state.preset = preset.id;
   }
   writeFiltersToDom();
@@ -244,7 +244,33 @@ function writeFiltersToDom() {
   renderTags();
 }
 
+const RANGE_PAIRS = [
+  ['priceMin', 'priceMax'],
+  ['minReviews', 'maxReviews'],
+  ['yearFrom', 'yearTo'],
+];
+
+// Resolves filter combinations that can never match anything, so a roll doesn't burn Steam requests on them.
+// `changedKey` is the field the user just committed: in an inverted range the other bound follows it.
+function normalizeFilters(f, changedKey) {
+  const n = { ...f };
+  for (const key of ['priceMin', 'priceMax', 'minReviews', 'maxReviews']) {
+    if (n[key] !== '' && Number(n[key]) < 0) n[key] = '0';
+  }
+  if (n.priceMode === 'free') {
+    Object.assign(n, { priceMin: '', priceMax: '', onSale: false, minDiscount: 0 });
+  }
+  if (n.priceMode === 'paid' && n.priceMax !== '' && Number(n.priceMax) <= 0) n.priceMax = '';
+  for (const [lo, hi] of RANGE_PAIRS) {
+    if (n[lo] === '' || n[hi] === '' || Number(n[lo]) <= Number(n[hi])) continue;
+    if (changedKey === hi) n[lo] = n[hi];
+    else n[hi] = n[lo];
+  }
+  return n;
+}
+
 function updateDerivedUi() {
+  $$('.paid-only').forEach((node) => node.classList.toggle('hidden', state.filters.priceMode === 'free'));
   const range = $('[data-f="minPositive"]');
   $('#minPositiveValue').textContent = `${range.value}%`;
   range.style.setProperty('--fill', `${(range.value / range.max) * 100}%`);
@@ -254,6 +280,16 @@ function updateDerivedUi() {
 
 function saveFilters() {
   store.set('sr.filters', { filters: state.filters, preset: state.preset });
+}
+
+// Input events keep state live while typing; normalization runs on commit (change / segment click)
+// so a half-typed number isn't rewritten under the cursor.
+function commitFilters(changedKey) {
+  const normalized = normalizeFilters(state.filters, changedKey);
+  if (JSON.stringify(normalized) === JSON.stringify(state.filters)) return;
+  state.filters = normalized;
+  writeFiltersToDom();
+  saveFilters();
 }
 
 function onFiltersChanged() {
@@ -288,6 +324,9 @@ function bindFilters() {
   $('#filters').addEventListener('input', (e) => {
     if (e.target.matches('[data-f], [data-f-group]')) onFiltersChanged();
   });
+  $('#filters').addEventListener('change', (e) => {
+    if (e.target.matches('[data-f]')) commitFilters(e.target.dataset.f);
+  });
   for (const seg of $$('[data-seg]')) {
     seg.addEventListener('click', (e) => {
       const b = e.target.closest('button');
@@ -295,6 +334,7 @@ function bindFilters() {
       state.filters[seg.dataset.seg] = b.dataset.value;
       seg.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
       onFiltersChanged();
+      commitFilters(seg.dataset.seg);
     });
   }
   $('#resetFilters').addEventListener('click', () => {
@@ -469,6 +509,7 @@ async function roll() {
 const ERROR_TITLES = {
   NO_RESULTS: 'Ничего не нашлось',
   NO_MATCH: 'Ничего не нашлось',
+  BAD_FILTERS: 'Фильтры противоречат друг другу',
   SAMPLE_LIMIT: 'Упёрлись в лимит проверки',
   RATE_LIMIT: 'Steam ограничил запросы',
   NETWORK: 'Нет связи со Steam',
@@ -718,7 +759,7 @@ function bindGlobal() {
 async function init() {
   const saved = store.get('sr.filters', null);
   if (saved) {
-    state.filters = { ...D.DEFAULT_FILTERS, ...saved.filters };
+    state.filters = normalizeFilters({ ...D.DEFAULT_FILTERS, ...saved.filters });
     state.preset = saved.preset || null;
   }
   state.history = store.get('sr.history', []);

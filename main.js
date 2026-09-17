@@ -152,6 +152,7 @@ function registerIpc() {
   });
 
   handle('steam:roll', async (event, { mode, filters, history }) => {
+    randomizer.assertConsistent(filters, { library: mode === 'library' });
     const s = settings();
     const exclude = new Set(filters.noRepeat ? history || [] : []);
     const onProgress = (p) => event.sender.send('roll:progress', p);
