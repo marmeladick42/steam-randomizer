@@ -18,16 +18,46 @@ npm run dist
 ## Steam Web API Key
 
 Если ключа нет, при запуске открывается экран ввода с пошаговой инструкцией (ключ получают на https://steamcommunity.com/dev/apikey).
-Ключ проверяется запросом к Steam и сохраняется в `.env`:
+Ключ проверяется запросом к Steam и сохраняется в зашифрованном виде (Electron `safeStorage`, на Windows — DPAPI, привязка к учётной записи пользователя) в файл `%APPDATA%/Steam Randomizer/secrets.json` — всегда в профиле пользователя, никогда рядом с `.exe`. Путь виден на экране ввода ключа и в настройках, в интерфейсе показываются только последние 4 символа ключа.
+
+- Файл `secrets.json`, скопированный на другой компьютер или под другого пользователя, не расшифруется: приложение удалит его и попросит ввести ключ заново.
+- Если шифрование в системе недоступно (не Windows, нет keyring), ключ на диск не пишется и живёт только до закрытия приложения — интерфейс об этом предупреждает.
+- Ключ из `.env` старых версий при первом запуске автоматически переносится в `secrets.json` и удаляется из `.env`.
+
+Остальные настройки (не секретные) лежат в `.env`:
 
 ```
-STEAM_API_KEY=...
 STEAM_ID=7656119...        # необязательно, для режима «Библиотека»
 STEAM_REGION=us            # регион магазина (валюта)
 STEAM_LANGUAGE=russian     # язык описаний и меток
 ```
 
-Где лежит `.env`: при `npm start` — в папке проекта; в собранном `.exe` — рядом с ним (если туда нельзя писать — в `%APPDATA%/Steam Randomizer`). Точный путь виден на экране ввода ключа и в настройках.
+Где лежит `.env`: при `npm start` — в папке проекта; в собранном `.exe` — рядом с ним (если туда нельзя писать — в `%APPDATA%/Steam Randomizer`).
+
+## Проверка целостности
+
+После каждой сборки в `dist/` создаётся `SHA256SUMS.txt` (формат `sha256sum`) — его нужно публиковать вместе с `.exe`. Пользователь проверяет скачанный файл так:
+
+```
+certutil -hashfile "Steam Randomizer 1.0.0.exe" SHA256
+```
+
+или в PowerShell: `Get-FileHash "Steam Randomizer 1.0.0.exe"`. Полученное значение должно совпасть (без учёта регистра) со строкой для этого файла в `SHA256SUMS.txt`. Хеш меняется с каждой сборкой, поэтому в репозитории он не хранится. Пересчитать вручную: `node scripts/checksums.mjs`.
+
+## Подпись сборки
+
+Без сертификата сборка проходит как обычно, но без подписи (в логе будет предупреждение `no code signing certificate configured`). Чтобы подписать `.exe`, задайте переменные окружения — в консоли или в файле `electron-builder.env` в корне проекта (он в `.gitignore`, electron-builder читает его сам). Подписываются и портативный лаунчер, и внутренний `Steam Randomizer.exe`. Нужен один из вариантов:
+
+| Вариант | Переменные |
+| --- | --- |
+| Azure Trusted Signing | `AZURE_SIGN_ENDPOINT`, `AZURE_SIGN_ACCOUNT`, `AZURE_SIGN_PROFILE`, `WIN_SIGN_PUBLISHER` + `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` |
+| Сертификат в хранилище Windows (USB-токен или облачный HSM через KSP: DigiCert KeyLocker, SSL.com eSigner и т.п.) | `WIN_SIGN_CERT_SHA1` (отпечаток) или `WIN_SIGN_CERT_SUBJECT` |
+| Облачный HSM со своей утилитой (jsign и т.п.) | `WIN_SIGN_COMMAND` — команда подписи, `{file}` заменяется на путь к файлу |
+| Файл `.pfx`/`.p12` (только старые сертификаты: с июня 2023 ключи OV/EV выдаются только на HSM) | `WIN_CSC_LINK` (путь или base64), `WIN_CSC_KEY_PASSWORD` |
+
+Необязательные: `WIN_SIGN_PUBLISHER` (имя издателя как в сертификате), `WIN_SIGN_TIMESTAMP_URL` (сервер меток времени, по умолчанию DigiCert). Конфигурация — в `electron-builder.cjs` (electron-builder 26: `win.signtoolOptions` / `win.azureSignOptions`). Проверить подпись: `signtool verify /pa /v "dist\Steam Randomizer 1.0.0.exe"` или «Свойства → Цифровые подписи».
+
+Портативный шаблон electron-builder содержит `CRCCheck off`, и штатно (через `nsis.include`) это не отменить — пользовательские include для portable не подключаются; целостность обеспечивает Authenticode-подпись.
 
 ## Режимы
 
@@ -39,11 +69,15 @@ STEAM_LANGUAGE=russian     # язык описаний и меток
 ## Структура
 
 ```
-main.js              главный процесс, IPC, работа с .env
+main.js              главный процесс, IPC, настройки, перенос ключа из старого .env
 preload.js           безопасный мост к интерфейсу (contextBridge)
 lib/steam.js         запросы к Steam Store и Web API, кэш
 lib/randomizer.js    фильтры и выбор случайной игры
 lib/env.js           чтение и запись .env
+lib/secrets.js       зашифрованное хранилище ключа API (safeStorage)
 renderer/            интерфейс (HTML/CSS/JS без фреймворков)
 scripts/smoke-test.js проверка на живом API: npm run check
+scripts/checksums.mjs SHA256SUMS.txt после сборки
+scripts/sign-command.js подпись внешней командой (WIN_SIGN_COMMAND)
+electron-builder.cjs конфиг сборки и подписи (.cjs, а не .js: иначе cmd запустит его вместо CLI)
 ```

@@ -11,30 +11,6 @@
     "dist": "electron-builder --win portable && node scripts/clean-dist.js",
     "dist:installer": "electron-builder --win nsis && node scripts/clean-dist.js"
   },
-  "build": {
-    "appId": "local.steam-randomizer",
-    "productName": "Steam Randomizer",
-    "files": [
-      "main.js",
-      "preload.js",
-      "lib/**/*",
-      "renderer/**/*",
-      "package.json"
-    ],
-    "directories": {
-      "output": "dist"
-    },
-    "electronLanguages": [
-      "ru",
-      "en-US"
-    ],
-    "compression": "maximum",
-    "win": {
-      "target": [
-        "portable"
-      ]
-    }
-  },
   "devDependencies": {
     "electron": "^44.4.1",
     "electron-builder": "^26.15.3"

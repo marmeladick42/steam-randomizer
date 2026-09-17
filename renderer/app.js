@@ -143,7 +143,7 @@ function initSetup() {
       }
       $('#setupKey').value = '';
       await reloadConfig();
-      toast('Ключ сохранён в .env');
+      toast('Ключ сохранён');
       await afterKeyReady();
     } finally {
       btn.disabled = false;
@@ -153,12 +153,19 @@ function initSetup() {
 }
 
 function openSetup({ cancellable = false } = {}) {
-  $('#setupEnvPath').textContent = state.config.envPath;
+  $('#setupKeyStorePath').textContent = state.config.keyStorePath;
+  renderKeyStorageWarning();
   $('#setupCancel').classList.toggle('hidden', !cancellable);
   $('#setupProfile').closest('.field').classList.toggle('hidden', !!state.config.steamId);
   setError($('#setupError'), '');
   showView('setup');
   $('#setupKey').focus();
+}
+
+// Without OS encryption the key is kept in memory only; say so wherever the key is managed.
+function renderKeyStorageWarning() {
+  const volatile = state.config.encryptionAvailable === false;
+  $$('[data-volatile-key]').forEach((node) => node.classList.toggle('hidden', !volatile));
 }
 
 async function reloadConfig() {
@@ -591,7 +598,8 @@ async function loadOwnedStats(force = false) {
 function renderSettings() {
   const c = state.config;
   $('#keyStatus').textContent = c.hasKey ? `Сохранён ${c.keyHint}` : 'Не задан';
-  $('#settingsEnvPath').textContent = c.envPath;
+  $('#settingsKeyStorePath').textContent = c.keyStorePath;
+  renderKeyStorageWarning();
   $('#profileInput').value = '';
   $('#profileInput').placeholder = c.steamId ? `Текущий: ${c.steamId}` : 'https://steamcommunity.com/id/ваш_ник или SteamID64';
   setError($('#profileError'), '');
@@ -615,7 +623,7 @@ function initSettings() {
 
   $('#changeKey').addEventListener('click', () => openSetup({ cancellable: true }));
   $('#removeKey').addEventListener('click', async () => {
-    if (!confirm('Удалить ключ API из файла .env?')) return;
+    if (!confirm('Удалить сохранённый ключ API?')) return;
     await api.removeKey();
     await reloadConfig();
     openSetup();

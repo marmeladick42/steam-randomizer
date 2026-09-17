@@ -2,11 +2,13 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { EnvFile } = require('./lib/env');
+const secrets = require('./lib/secrets');
 const steam = require('./lib/steam');
 const randomizer = require('./lib/randomizer');
 
 const DEFAULTS = { cc: 'us', lang: 'russian' };
 
+// .env holds only non-secret settings (region, language, profile); the API key lives in lib/secrets.
 // Dev: .env in the project folder. Packaged: next to the .exe when writable, else in userData.
 function resolveEnvPath() {
   if (!app.isPackaged) return path.join(app.getAppPath(), '.env');
@@ -19,6 +21,29 @@ function resolveEnvPath() {
   }
 }
 
+// Every place resolveEnvPath() may have chosen in the past, for the legacy key migration.
+function legacyEnvPaths() {
+  if (!app.isPackaged) return [path.join(app.getAppPath(), '.env')];
+  const dir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath);
+  return [path.join(dir, '.env'), path.join(app.getPath('userData'), '.env')];
+}
+
+// One-time move of STEAM_API_KEY from plain-text .env into the encrypted store.
+function migrateLegacyKey() {
+  for (const file of legacyEnvPaths()) {
+    const legacy = new EnvFile(file);
+    const key = legacy.get('STEAM_API_KEY').trim();
+    if (!key) continue;
+    try {
+      if (!secrets.getApiKey()) secrets.setApiKey(key);
+      // Without encryption keep .env as is, otherwise the key would be lost after restart.
+      if (secrets.isAvailable()) legacy.update({ STEAM_API_KEY: '' });
+    } catch (err) {
+      console.error('[migrate] cannot move API key out of', file, err.code || err.name);
+    }
+  }
+}
+
 let env;
 let win;
 const tagCache = new Map(); // lang -> Map(id -> name)
@@ -27,7 +52,7 @@ let ownedCache = null; // { steamid, games, fetchedAt }
 function settings() {
   const e = env.read();
   return {
-    key: e.STEAM_API_KEY || '',
+    key: secrets.getApiKey(),
     steamId: e.STEAM_ID || '',
     cc: e.STEAM_REGION || DEFAULTS.cc,
     lang: e.STEAM_LANGUAGE || DEFAULTS.lang,
@@ -66,18 +91,27 @@ function handle(channel, fn) {
 function registerIpc() {
   handle('config:get', () => {
     const s = settings();
-    return { hasKey: !!s.key, keyHint: s.key ? `••••${s.key.slice(-4)}` : '', steamId: s.steamId, cc: s.cc, lang: s.lang, envPath: env.filePath };
+    return {
+      hasKey: !!s.key,
+      keyHint: s.key ? `••••${s.key.slice(-4)}` : '',
+      steamId: s.steamId,
+      cc: s.cc,
+      lang: s.lang,
+      keyStorePath: secrets.filePath(),
+      envPath: env.filePath,
+      encryptionAvailable: secrets.isAvailable(),
+    };
   });
 
   handle('config:saveKey', async (_e, key) => {
     const clean = String(key || '').trim();
     await steam.validateKey(clean);
-    env.update({ STEAM_API_KEY: clean });
+    secrets.setApiKey(clean);
     return true;
   });
 
   handle('config:removeKey', () => {
-    env.update({ STEAM_API_KEY: '' });
+    secrets.clearApiKey();
     return true;
   });
 
@@ -191,6 +225,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   env = new EnvFile(resolveEnvPath());
+  migrateLegacyKey();
   registerIpc();
   createWindow();
 });

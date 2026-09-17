@@ -46,7 +46,8 @@
       <div class="setup">
         <div class="panel setup-form">
           <h1>Подключение к Steam</h1>
-          <p class="muted">Для работы нужен ваш личный Steam Web API Key. Он сохраняется только локально в файл <code>.env</code> и никуда не отправляется, кроме серверов Steam.</p>
+          <p class="muted">Для работы нужен ваш личный Steam Web API Key. Он сохраняется локально в зашифрованном виде средствами Windows, привязан к вашей учётной записи и никуда не отправляется, кроме серверов Steam.</p>
+          <div class="form-error hidden" data-volatile-key>Шифрование недоступно в этой системе: ключ будет храниться только до закрытия приложения, после перезапуска его придётся ввести снова.</div>
 
           <label class="field">
             <span class="field-label">Steam Web API Key</span>
@@ -65,7 +66,7 @@
           <div class="form-error" id="setupError" hidden></div>
           <button class="btn-accent btn-wide" id="setupSave">Проверить и сохранить</button>
           <button class="btn-link hidden" id="setupCancel">Отмена</button>
-          <p class="env-path">Файл: <code id="setupEnvPath"></code></p>
+          <p class="env-path">Хранилище ключа: <code id="setupKeyStorePath"></code></p>
         </div>
 
         <div class="panel guide">
@@ -331,7 +332,8 @@
             <h2>Steam Web API Key</h2>
             <span class="status ok" id="keyStatus"></span>
           </div>
-          <p class="muted">Ключ хранится в файле <code id="settingsEnvPath"></code></p>
+          <p class="muted">Ключ хранится в зашифрованном виде в файле <code id="settingsKeyStorePath"></code></p>
+          <div class="form-error hidden" data-volatile-key>Шифрование недоступно в этой системе: ключ сохранён только до закрытия приложения.</div>
           <div class="btn-row">
             <button class="btn-soft" id="changeKey">Изменить ключ</button>
             <button class="btn-danger" id="removeKey">Удалить ключ</button>

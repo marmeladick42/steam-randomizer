@@ -18,8 +18,8 @@ async function main() {
   const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'sr-')), '.env');
   fs.writeFileSync(file, '# comment\nOTHER=1\nSTEAM_ID=old\n');
   const env = new EnvFile(file);
-  env.update({ STEAM_API_KEY: 'ABC', STEAM_ID: '' });
-  assert.deepStrictEqual(env.read(), { OTHER: '1', STEAM_API_KEY: 'ABC' });
+  env.update({ STEAM_REGION: 'us', STEAM_ID: '' });
+  assert.deepStrictEqual(env.read(), { OTHER: '1', STEAM_REGION: 'us' });
   assert.ok(fs.readFileSync(file, 'utf8').startsWith('# comment'));
   console.log('env: ok');
 
