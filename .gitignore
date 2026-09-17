@@ -4,3 +4,4 @@ dist/
 electron-builder.env
 *.pfx
 *.p12
+server.env

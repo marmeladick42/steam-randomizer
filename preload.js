@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const invoke = (channel, ...args) => ipcRenderer.invoke(channel, ...args);
 
 contextBridge.exposeInMainWorld('api', {
+  platform: 'desktop',
   getConfig: () => invoke('config:get'),
   saveKey: (key) => invoke('config:saveKey', key),
   removeKey: () => invoke('config:removeKey'),

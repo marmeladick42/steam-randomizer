@@ -1,4 +1,4 @@
-// `api` is exposed by preload.js via contextBridge.
+// `api` is exposed by preload.js via contextBridge (desktop) or by web/api.js (browser, `api.platform === 'web'`).
 const D = window.DATA;
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -492,7 +492,7 @@ async function roll() {
   btn.disabled = state.mode === 'library' && !state.config.steamId;
 
   if (!res.ok) {
-    if (res.code === 'BAD_KEY') {
+    if (res.code === 'BAD_KEY' && !state.config.web) {
       toast('Ключ API больше не действует — введите новый', true);
       await reloadConfig();
       return openSetup();
@@ -513,6 +513,12 @@ const ERROR_TITLES = {
   SAMPLE_LIMIT: 'Упёрлись в лимит проверки',
   RATE_LIMIT: 'Steam ограничил запросы',
   NETWORK: 'Нет связи со Steam',
+  NO_PROFILE: 'Нужен профиль Steam',
+  BAD_KEY: 'Сайт временно не работает',
+  TOO_MANY: 'Слишком много запросов',
+  BUSY: 'Сервер занят',
+  OFFLINE: 'Нет связи с сервером',
+  SERVER: 'Ошибка сервера',
 };
 
 function showGame(g) {
@@ -648,7 +654,7 @@ async function loadOwnedStats(force = false) {
 function renderSettings() {
   const c = state.config;
   $('#keyStatus').textContent = c.hasKey ? `Сохранён ${c.keyHint}` : 'Не задан';
-  $('#settingsKeyStorePath').textContent = c.keyStorePath;
+  $('#settingsKeyStorePath').textContent = c.keyStorePath || '';
   renderKeyStorageWarning();
   $('#profileInput').value = '';
   $('#profileInput').placeholder = c.steamId ? `Текущий: ${c.steamId}` : 'https://steamcommunity.com/id/ваш_ник или SteamID64';
@@ -757,6 +763,7 @@ function bindGlobal() {
 }
 
 async function init() {
+  document.body.classList.toggle('web', api.platform === 'web');
   const saved = store.get('sr.filters', null);
   if (saved) {
     state.filters = normalizeFilters({ ...D.DEFAULT_FILTERS, ...saved.filters });
@@ -778,7 +785,8 @@ async function init() {
   state.config = res.data;
   await reloadConfig();
 
-  if (!state.config.hasKey) openSetup();
+  // The web server refuses to start without a key, and visitors can't enter one anyway.
+  if (!state.config.hasKey && !state.config.web) openSetup();
   else afterKeyReady();
 }
 

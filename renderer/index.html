@@ -35,7 +35,7 @@
       <span id="profileName"></span>
     </div>
     <span class="signature" aria-hidden="true">by <span class="sig-name"><svg class="sig-crown"><use href="#i-crown"/></svg>marmeladick</span><span class="sig-heart">&#9829;</span></span>
-    <div class="win-controls">
+    <div class="win-controls" data-desktop-only>
       <button data-win="minimize" title="Свернуть"><svg viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor"/></svg></button>
       <button data-win="maximize" title="Развернуть"><svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor"/></svg></button>
       <button data-win="close" class="close" title="Закрыть"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1 1 9" stroke="currentColor"/></svg></button>
@@ -329,7 +329,7 @@
       <div class="settings">
         <h1>Настройки</h1>
 
-        <div class="panel setting">
+        <div class="panel setting" data-desktop-only>
           <div class="setting-head">
             <h2>Steam Web API Key</h2>
             <span class="status ok" id="keyStatus"></span>
@@ -346,6 +346,7 @@
         <div class="panel setting">
           <div class="setting-head"><h2>Профиль Steam</h2></div>
           <p class="muted">Используется для режима «Библиотека» и фильтра «Исключить игры из моей библиотеки».</p>
+          <p class="muted" data-web-only>Профиль запоминается только в этом браузере. Список игр Steam отдаёт, только если в настройках приватности «Игровая информация» открыта.</p>
           <div class="profile-card hidden" id="settingsProfile">
             <img alt="" id="settingsAvatar">
             <div>
@@ -367,6 +368,7 @@
         <div class="panel setting">
           <div class="setting-head"><h2>Регион и язык</h2></div>
           <p class="muted">Регион определяет валюту и цены, язык — описания и названия меток.</p>
+          <p class="muted" data-web-only>Настройки сохраняются только в этом браузере.</p>
           <div class="grid-2">
             <label class="select-field stacked"><span>Регион магазина</span><select id="regionSelect"></select></label>
             <label class="select-field stacked"><span>Язык описаний</span><select id="uiLangSelect"></select></label>

@@ -7,6 +7,8 @@
   "private": true,
   "scripts": {
     "start": "node scripts/start.js",
+    "serve": "node web/server.js",
+    "share": "node web/share.js",
     "check": "node scripts/smoke-test.js",
     "dist": "electron-builder --win portable && node scripts/clean-dist.js",
     "dist:installer": "electron-builder --win nsis && node scripts/clean-dist.js"
