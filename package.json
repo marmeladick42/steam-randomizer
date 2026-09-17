@@ -1,0 +1,37 @@
+{
+  "name": "steam-randomizer",
+  "productName": "Steam Randomizer",
+  "version": "1.0.0",
+  "description": "Случайная игра из Steam по подробным фильтрам",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/start.js",
+    "check": "node scripts/smoke-test.js",
+    "dist": "electron-builder --win portable",
+    "dist:installer": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "local.steam-randomizer",
+    "productName": "Steam Randomizer",
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.1",
+    "electron-builder": "^26.15.3"
+  }
+}
