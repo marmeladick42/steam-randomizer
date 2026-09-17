@@ -5,7 +5,7 @@ const { EnvFile } = require('./lib/env');
 const steam = require('./lib/steam');
 const randomizer = require('./lib/randomizer');
 
-const DEFAULTS = { cc: 'ru', lang: 'russian' };
+const DEFAULTS = { cc: 'us', lang: 'russian' };
 
 // Dev: .env in the project folder. Packaged: next to the .exe when writable, else in userData.
 function resolveEnvPath() {

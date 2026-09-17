@@ -23,7 +23,7 @@ npm run dist
 ```
 STEAM_API_KEY=...
 STEAM_ID=7656119...        # необязательно, для режима «Библиотека»
-STEAM_REGION=ru            # регион магазина (валюта)
+STEAM_REGION=us            # регион магазина (валюта)
 STEAM_LANGUAGE=russian     # язык описаний и меток
 ```
 
