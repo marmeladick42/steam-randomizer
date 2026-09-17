@@ -70,7 +70,12 @@ module.exports = {
   compression: 'maximum',
   win: {
     target: ['portable'],
+    icon: 'build/icon.ico',
+    // No spaces in file names: the inner app exe and the distributables (no version either).
+    executableName: 'SteamRandomizer',
     ...windowsSigning(),
   },
+  portable: { artifactName: 'SteamRandomizer.${ext}' },
+  nsis: { artifactName: 'SteamRandomizer-Setup.${ext}' },
   afterAllArtifactBuild: './scripts/checksums.mjs',
 };
