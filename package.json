@@ -8,8 +8,8 @@
   "scripts": {
     "start": "node scripts/start.js",
     "check": "node scripts/smoke-test.js",
-    "dist": "electron-builder --win portable",
-    "dist:installer": "electron-builder --win nsis"
+    "dist": "electron-builder --win portable && node scripts/clean-dist.js",
+    "dist:installer": "electron-builder --win nsis && node scripts/clean-dist.js"
   },
   "build": {
     "appId": "local.steam-randomizer",
@@ -24,6 +24,11 @@
     "directories": {
       "output": "dist"
     },
+    "electronLanguages": [
+      "ru",
+      "en-US"
+    ],
+    "compression": "maximum",
     "win": {
       "target": [
         "portable"
