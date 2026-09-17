@@ -257,7 +257,27 @@ function onFiltersChanged() {
   saveFilters();
 }
 
+function bindFilterBlocks() {
+  for (const title of $$('#filters .block-title')) {
+    const block = title.parentElement;
+    const setCollapsed = (collapsed) => {
+      block.classList.toggle('collapsed', collapsed);
+      title.setAttribute('aria-expanded', String(!collapsed));
+    };
+    title.setAttribute('role', 'button');
+    title.tabIndex = 0;
+    setCollapsed(true);
+    title.addEventListener('click', () => setCollapsed(!block.classList.contains('collapsed')));
+    title.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      title.click();
+    });
+  }
+}
+
 function bindFilters() {
+  bindFilterBlocks();
   $('#filters').addEventListener('input', (e) => {
     if (e.target.matches('[data-f], [data-f-group]')) onFiltersChanged();
   });
