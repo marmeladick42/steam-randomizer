@@ -81,16 +81,17 @@ window.DATA = {
     { id: 'schinese', name: 'Китайский (упр.)' },
   ],
 
+  // currency is what Steam actually charges in the region; Belarus and Turkey are priced in USD by Steam.
   REGIONS: [
     { id: 'ru', name: 'Россия', currency: '₽' },
     { id: 'kz', name: 'Казахстан', currency: '₸' },
-    { id: 'ua', name: 'Украина', currency: '$' },
-    { id: 'by', name: 'Беларусь', currency: '$' },
+    { id: 'ua', name: 'Украина', currency: '₴' },
+    { id: 'by', name: 'Беларусь', currency: '$', usdOnly: true },
     { id: 'us', name: 'США', currency: '$' },
     { id: 'de', name: 'Германия (ЕС)', currency: '€' },
     { id: 'pl', name: 'Польша', currency: 'zł' },
     { id: 'gb', name: 'Великобритания', currency: '£' },
-    { id: 'tr', name: 'Турция', currency: '$' },
+    { id: 'tr', name: 'Турция', currency: '$', usdOnly: true },
     { id: 'br', name: 'Бразилия', currency: 'R$' },
     { id: 'jp', name: 'Япония', currency: '¥' },
   ],

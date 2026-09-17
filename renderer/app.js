@@ -590,7 +590,7 @@ function renderSettings() {
 }
 
 function initSettings() {
-  for (const r of D.REGIONS) $('#regionSelect').append(el('option', { value: r.id, text: `${r.name} (${r.currency})` }));
+  for (const r of D.REGIONS) $('#regionSelect').append(el('option', { value: r.id, text: `${r.name} (${r.usdOnly ? 'USD — Steam продаёт в долларах' : r.currency})` }));
   for (const l of D.UI_LANGUAGES) $('#uiLangSelect').append(el('option', { value: l.id, text: l.name }));
 
   $('#changeKey').addEventListener('click', () => openSetup({ cancellable: true }));
