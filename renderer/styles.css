@@ -245,6 +245,30 @@ input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; marg
 select { cursor: pointer; padding-right: 6px; }
 select option { background: var(--panel); }
 
+/* Customizable select: the native popup ignores CSS hover colors. */
+@supports (appearance: base-select) {
+  select, ::picker(select) { appearance: base-select; }
+  select { display: flex; align-items: center; padding: 0 8px 0 10px; }
+  select::picker-icon { color: var(--text-dim); font-size: 10px; transition: transform 0.15s; }
+  select:open::picker-icon { transform: rotate(180deg); }
+  ::picker(select) {
+    background: var(--panel);
+    border: 1px solid #000;
+    border-radius: 2px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    padding: 2px 0;
+    max-height: 280px;
+    margin-top: 2px;
+    /* ::-webkit-scrollbar rules don't reach the picker, so use the standard properties. */
+    scrollbar-width: thin;
+    scrollbar-color: #3a3e50 transparent;
+  }
+  select option { padding: 5px 10px; color: var(--text); font-size: 13px; cursor: pointer; }
+  select option::checkmark { display: none; }
+  select option:checked { color: var(--accent-2); }
+  select option:hover, select option:focus-visible { background: var(--accent-deep); color: var(--white); outline: none; }
+}
+
 .input-row { display: flex; gap: 8px; }
 .input-row input { flex: 1; }
 
