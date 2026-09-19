@@ -545,20 +545,12 @@ function showGame(g) {
   $('#gTags').replaceChildren(...(g.tags.length ? g.tags : g.genres).map((t) => el('span', { text: t })));
 
   // media
-  const shots = g.screenshots.length ? g.screenshots : g.header ? [{ thumb: g.header, full: g.header }] : [];
-  const main = $('#gMedia');
-  const select = (shot, thumb) => {
-    main.src = shot.full;
-    $$('#gShots img').forEach((i) => i.classList.toggle('active', i === thumb));
-  };
-  const thumbs = shots.map((s) => {
-    const img = el('img', { src: s.thumb, alt: '', loading: 'lazy' });
-    img.addEventListener('click', () => select(s, img));
-    return img;
-  });
-  $('#gShots').replaceChildren(...thumbs);
-  if (shots[0]) select(shots[0], thumbs[0]);
-  else main.src = '';
+  gallery.shots = g.screenshots.length ? g.screenshots : g.header ? [{ thumb: g.header, full: g.header }] : [];
+  gallery.index = 0;
+  $('#gShots').replaceChildren(
+    ...gallery.shots.map((s, i) => el('img', { src: s.thumb, alt: '', loading: 'lazy', onclick: () => showShot(i) })),
+  );
+  showShot(0);
 
   const bg = $('#stageBg');
   bg.style.backgroundImage = g.background ? `url("${g.background}")` : g.screenshots[0] ? `url("${g.screenshots[0].full}")` : 'none';
@@ -600,6 +592,41 @@ function showGame(g) {
     price.replaceChildren(el('span', { class: 'final', text: p.formatted }));
   }
 }
+
+// ---------- screenshots ----------
+const gallery = { shots: [], index: 0 };
+
+function showShot(i) {
+  const n = gallery.shots.length;
+  gallery.index = n ? (i + n) % n : 0;
+  const shot = gallery.shots[gallery.index];
+  $('#gMedia').src = shot ? shot.full : '';
+  $$('.media-arrow').forEach((b) => b.classList.toggle('hidden', n < 2));
+  const strip = $('#gShots');
+  [...strip.children].forEach((img, idx) => {
+    img.classList.toggle('active', idx === gallery.index);
+    if (idx !== gallery.index) return;
+    // keep the active thumb visible without scrolling the page itself
+    if (img.offsetLeft < strip.scrollLeft) strip.scrollLeft = img.offsetLeft;
+    else if (img.offsetLeft + img.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = img.offsetLeft + img.offsetWidth - strip.clientWidth;
+  });
+  if (!$('#lightbox').classList.contains('hidden')) renderLightbox();
+}
+
+function renderLightbox() {
+  const n = gallery.shots.length;
+  $('#lightboxImg').src = gallery.shots[gallery.index].full;
+  $('#lightboxCount').textContent = `${gallery.index + 1} / ${n}`;
+  $$('.lightbox-arrow').forEach((b) => b.classList.toggle('hidden', n < 2));
+}
+
+function openLightbox() {
+  if (!gallery.shots.length) return;
+  $('#lightbox').classList.remove('hidden');
+  renderLightbox();
+}
+
+const closeLightbox = () => $('#lightbox').classList.add('hidden');
 
 // ---------- history ----------
 function addToHistory(g) {
@@ -746,14 +773,28 @@ function bindGlobal() {
     store.set('sr.history', []);
     renderHistory();
   });
-  $('#gMedia').addEventListener('click', (e) => {
-    if (!e.target.src) return;
-    $('#lightboxImg').src = e.target.src;
-    $('#lightbox').classList.remove('hidden');
+  $('#gMedia').addEventListener('click', openLightbox);
+  $('#gMediaPrev').addEventListener('click', () => showShot(gallery.index - 1));
+  $('#gMediaNext').addEventListener('click', () => showShot(gallery.index + 1));
+  $('#lightboxPrev').addEventListener('click', () => showShot(gallery.index - 1));
+  $('#lightboxNext').addEventListener('click', () => showShot(gallery.index + 1));
+  $('#lightboxClose').addEventListener('click', closeLightbox);
+  $('#lightboxFull').addEventListener('click', (e) => {
+    e.preventDefault();
+    api.open(gallery.shots[gallery.index].full);
   });
-  $('#lightbox').addEventListener('click', () => $('#lightbox').classList.add('hidden'));
+  $('#lightbox').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeLightbox();
+  });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') $('#lightbox').classList.add('hidden');
+    if (!$('#lightbox').classList.contains('hidden')) {
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') showShot(gallery.index - 1);
+      else if (e.key === 'ArrowRight') showShot(gallery.index + 1);
+      else return;
+      e.preventDefault();
+      return;
+    }
     const typing = e.target.matches('input, select, textarea');
     if (!typing && e.code === 'Space' && !$('#view-main').hidden) {
       e.preventDefault();

@@ -731,9 +731,31 @@ input[type="range"]:focus { box-shadow: none; }
   padding: 12px;
   border-radius: var(--radius);
 }
-.media-main { aspect-ratio: 16 / 9; background: #000; overflow: hidden; border-radius: 2px; }
-.media-main img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
-.shots { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; padding-bottom: 4px; }
+.media-main { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; border-radius: 2px; }
+.media-main img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+.media-arrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--white);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.media-arrow.prev { left: 0; background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent); }
+.media-arrow.next { right: 0; background: linear-gradient(to left, rgba(0, 0, 0, 0.55), transparent); }
+.media-arrow svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8)); transition: transform 0.15s; }
+.media-main:hover .media-arrow { opacity: 0.75; }
+.media-main .media-arrow:hover { opacity: 1; }
+.media-arrow.prev:hover svg { transform: translateX(-2px); }
+.media-arrow.next:hover svg { transform: translateX(2px); }
+.shots { position: relative; display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; padding-bottom: 4px; }
 .shots img {
   width: 116px;
   aspect-ratio: 16 / 9;
@@ -857,13 +879,63 @@ input[type="range"]:focus { box-shadow: none; }
   position: fixed;
   inset: 48px 0 0 0;
   z-index: 20;
-  background: rgba(8, 8, 12, 0.92);
+  background: rgba(0, 0, 0, 0.8);
   display: grid;
   place-items: center;
-  cursor: zoom-out;
   animation: fade 0.2s;
 }
-.lightbox img { max-width: 92%; max-height: 92%; box-shadow: 0 0 60px rgba(255, 61, 110, 0.3); }
+.lightbox-panel {
+  display: flex;
+  flex-direction: column;
+  max-width: 92vw;
+  background: var(--bg-deep);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 61, 110, 0.2);
+}
+.lightbox-view { position: relative; display: grid; place-items: center; background: #000; }
+.lightbox-view img { display: block; max-width: 92vw; max-height: calc(100vh - 48px - 110px); }
+.lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--white);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+}
+.lightbox-arrow.prev { left: 8px; }
+.lightbox-arrow.next { right: 8px; }
+.lightbox-arrow:hover { opacity: 1; background: var(--accent-bg-2); }
+.lightbox-arrow svg { width: 30px; height: 30px; }
+.lightbox-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+.lightbox-bar a { color: var(--text-dim); justify-self: start; }
+.lightbox-bar a:hover { color: var(--accent-soft); }
+.lightbox-count { color: var(--text-dim); }
+.lightbox-close {
+  justify-self: end;
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--panel-3);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.lightbox-close:hover { background: var(--accent); color: var(--white); }
 @keyframes fade { from { opacity: 0; } }
 
 .toast {

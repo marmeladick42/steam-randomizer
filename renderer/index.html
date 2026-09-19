@@ -16,6 +16,8 @@
     <symbol id="i-steam" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-9.96 9.2l5.36 2.2a2.8 2.8 0 0 1 1.6-.5h.16l2.38-3.46v-.05a3.77 3.77 0 1 1 3.77 3.77h-.09l-3.4 2.43v.13a2.83 2.83 0 0 1-5.6.56L2.4 14.8A10 10 0 1 0 12 2zm-4.72 15.2-1.22-.5a2.12 2.12 0 1 0 1.16-2.9l1.27.52a1.56 1.56 0 1 1-1.2 2.88zm9.5-7.9a2.51 2.51 0 1 0-2.5 2.5 2.51 2.51 0 0 0 2.5-2.5zm-4.4 0a1.89 1.89 0 1 1 1.89 1.89 1.89 1.89 0 0 1-1.89-1.89z"/></symbol>
     <symbol id="i-ext" viewBox="0 0 16 16"><path fill="none" stroke="currentColor" stroke-width="1.6" d="M9 2h5v5M14 2 7 9M12 10v4H2V4h4"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M15 4 7 12l8 8"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m9 4 8 8-8 8"/></symbol>
     <symbol id="i-crown" viewBox="0 0 24 14"><path fill="currentColor" d="M2 11 1 2.5l6 4L12 0l5 6.5 6-4-1 8.5zM2.2 12h19.6v2H2.2z"/></symbol>
   </svg>
 
@@ -285,7 +287,11 @@
             </div>
             <div class="game-top">
               <div class="game-media">
-                <div class="media-main"><img id="gMedia" alt=""></div>
+                <div class="media-main">
+                  <img id="gMedia" alt="">
+                  <button class="media-arrow prev" id="gMediaPrev" title="Предыдущий скриншот"><svg><use href="#i-chevron-left"/></svg></button>
+                  <button class="media-arrow next" id="gMediaNext" title="Следующий скриншот"><svg><use href="#i-chevron-right"/></svg></button>
+                </div>
                 <div class="shots" id="gShots"></div>
               </div>
               <div class="game-info">
@@ -379,7 +385,20 @@
     </section>
   </main>
 
-  <div class="lightbox hidden" id="lightbox"><img alt="" id="lightboxImg"></div>
+  <div class="lightbox hidden" id="lightbox">
+    <div class="lightbox-panel">
+      <div class="lightbox-view">
+        <img alt="" id="lightboxImg">
+        <button class="lightbox-arrow prev" id="lightboxPrev" title="Предыдущий скриншот"><svg><use href="#i-chevron-left"/></svg></button>
+        <button class="lightbox-arrow next" id="lightboxNext" title="Следующий скриншот"><svg><use href="#i-chevron-right"/></svg></button>
+      </div>
+      <div class="lightbox-bar">
+        <a href="#" id="lightboxFull">Показать в полном размере</a>
+        <span class="lightbox-count" id="lightboxCount"></span>
+        <button class="lightbox-close" id="lightboxClose" title="Закрыть (Esc)">Закрыть</button>
+      </div>
+    </div>
+  </div>
   <div class="toast" id="toast"></div>
 
   <script src="data.js"></script>
