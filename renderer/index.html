@@ -19,7 +19,7 @@
     <symbol id="i-chevron-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M15 4 7 12l8 8"/></symbol>
     <symbol id="i-chevron-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m9 4 8 8-8 8"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="7.3" r="1.4" fill="currentColor"/></symbol>
-    <symbol id="i-crown"viewBox="0 0 24 14"><path fill="currentColor" d="M2 11 1 2.5l6 4L12 0l5 6.5 6-4-1 8.5zM2.2 12h19.6v2H2.2z"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 14"><path fill="currentColor" d="M2 11 1 2.5l6 4L12 0l5 6.5 6-4-1 8.5zM2.2 12h19.6v2H2.2z"/></symbol>
   </svg>
 
   <header class="titlebar">
@@ -28,9 +28,9 @@
       <span>STEAM</span><b>RANDOMIZER</b>
     </div>
     <nav class="nav" id="nav">
-      <button data-view="store" class="active">Магазин</button>
-      <button data-view="library">Библиотека</button>
-      <button data-view="settings">Настройки</button>
+      <button data-view="store" class="active" data-i18n="nav.store">Магазин</button>
+      <button data-view="library" data-i18n="nav.library">Библиотека</button>
+      <button data-view="settings" data-i18n="nav.settings">Настройки</button>
     </nav>
     <div class="drag-space"></div>
     <div class="profile-chip hidden" id="profileChip">
@@ -39,9 +39,9 @@
     </div>
     <span class="signature" aria-hidden="true">by <span class="sig-name"><svg class="sig-crown"><use href="#i-crown"/></svg>marmeladick</span><span class="sig-heart">&#9829;</span></span>
     <div class="win-controls" data-desktop-only>
-      <button data-win="minimize" title="Свернуть"><svg viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor"/></svg></button>
-      <button data-win="maximize" title="Развернуть"><svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor"/></svg></button>
-      <button data-win="close" class="close" title="Закрыть"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1 1 9" stroke="currentColor"/></svg></button>
+      <button data-win="minimize" title="Свернуть" data-i18n-title="win.minimize"><svg viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor"/></svg></button>
+      <button data-win="maximize" title="Развернуть" data-i18n-title="win.maximize"><svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" fill="none" stroke="currentColor"/></svg></button>
+      <button data-win="close" class="close" title="Закрыть" data-i18n-title="win.close"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1 1 9" stroke="currentColor"/></svg></button>
     </div>
   </header>
 
@@ -50,60 +50,60 @@
     <section class="view" id="view-setup" hidden>
       <div class="setup">
         <div class="panel setup-form">
-          <h1>Подключение к Steam</h1>
-          <p class="muted">Для работы нужен ваш личный Steam Web API Key. Он сохраняется локально в зашифрованном виде средствами Windows, привязан к вашей учётной записи и никуда не отправляется, кроме серверов Steam.</p>
-          <div class="form-error hidden" data-volatile-key>Шифрование недоступно в этой системе: ключ будет храниться только до закрытия приложения, после перезапуска его придётся ввести снова.</div>
+          <h1 data-i18n="setup.title">Подключение к Steam</h1>
+          <p class="muted" data-i18n="setup.intro">Для работы нужен ваш личный Steam Web API Key. Он сохраняется локально в зашифрованном виде средствами Windows, привязан к вашей учётной записи и никуда не отправляется, кроме серверов Steam.</p>
+          <div class="form-error hidden" data-volatile-key data-i18n="setup.volatile">Шифрование недоступно в этой системе: ключ будет храниться только до закрытия приложения, после перезапуска его придётся ввести снова.</div>
 
           <label class="field">
             <span class="field-label">Steam Web API Key</span>
             <div class="input-row">
-              <input type="password" id="setupKey" placeholder="32 символа, например 1A2B3C…" autocomplete="off" spellcheck="false" maxlength="64">
-              <button class="btn-icon" id="toggleKey" title="Показать / скрыть"><svg><use href="#i-eye"/></svg></button>
+              <input type="password" id="setupKey" placeholder="32 символа, например 1A2B3C…" data-i18n-placeholder="setup.keyPlaceholder" autocomplete="off" spellcheck="false" maxlength="64">
+              <button class="btn-icon" id="toggleKey" title="Показать / скрыть" data-i18n-title="setup.toggleKey"><svg><use href="#i-eye"/></svg></button>
             </div>
           </label>
 
           <label class="field">
-            <span class="field-label">Профиль Steam <em>(необязательно)</em></span>
-            <input type="text" id="setupProfile" placeholder="Ссылка на профиль, ник из ссылки или SteamID64" spellcheck="false">
-            <span class="field-hint">Нужен для режима «Библиотека» и фильтра «Исключить мои игры».</span>
+            <span class="field-label" data-i18n-html="setup.profileLabel">Профиль Steam <em>(необязательно)</em></span>
+            <input type="text" id="setupProfile" placeholder="Ссылка на профиль, ник из ссылки или SteamID64" data-i18n-placeholder="setup.profilePlaceholder" spellcheck="false">
+            <span class="field-hint" data-i18n="setup.profileHint">Нужен для режима «Библиотека» и фильтра «Исключить мои игры».</span>
           </label>
 
           <div class="form-error" id="setupError" hidden></div>
-          <button class="btn-accent btn-wide" id="setupSave">Проверить и сохранить</button>
-          <button class="btn-link hidden" id="setupCancel">Отмена</button>
-          <p class="env-path">Хранилище ключа: <code id="setupKeyStorePath"></code></p>
+          <button class="btn-accent btn-wide" id="setupSave" data-i18n="setup.save">Проверить и сохранить</button>
+          <button class="btn-link hidden" id="setupCancel" data-i18n="common.cancel">Отмена</button>
+          <p class="env-path"><span data-i18n="setup.keyStore">Хранилище ключа:</span> <code id="setupKeyStorePath"></code></p>
         </div>
 
         <div class="panel guide">
-          <h2>Как получить ключ</h2>
+          <h2 data-i18n="guide.title">Как получить ключ</h2>
           <ol class="steps">
             <li>
-              <b>Войдите в Steam в браузере</b>
-              <span>Аккаунт не должен быть «ограниченным»: на нём должна быть хотя бы одна покупка или пополнение от $5. Нужен подключённый Steam Guard.</span>
+              <b data-i18n="guide.s1.title">Войдите в Steam в браузере</b>
+              <span data-i18n="guide.s1.text">Аккаунт не должен быть «ограниченным»: на нём должна быть хотя бы одна покупка или пополнение от $5. Нужен подключённый Steam Guard.</span>
             </li>
             <li>
-              <b>Откройте страницу регистрации ключа</b>
+              <b data-i18n="guide.s2.title">Откройте страницу регистрации ключа</b>
               <span><button class="btn-soft" data-open="https://steamcommunity.com/dev/apikey"><svg><use href="#i-ext"/></svg> steamcommunity.com/dev/apikey</button></span>
             </li>
             <li>
-              <b>Укажите любой домен</b>
-              <span>Например <code>localhost</code> — для этого приложения домен не важен.</span>
+              <b data-i18n="guide.s3.title">Укажите любой домен</b>
+              <span data-i18n-html="guide.s3.text">Например <code>localhost</code> — для этого приложения домен не важен.</span>
             </li>
             <li>
-              <b>Примите условия и нажмите «Регистрация»</b>
-              <span>Steam может попросить подтвердить действие в мобильном приложении Steam Guard.</span>
+              <b data-i18n="guide.s4.title">Примите условия и нажмите «Регистрация»</b>
+              <span data-i18n="guide.s4.text">Steam может попросить подтвердить действие в мобильном приложении Steam Guard.</span>
             </li>
             <li>
-              <b>Скопируйте ключ</b>
-              <span>Это строка из 32 символов в поле «Ключ». Вставьте её слева и нажмите «Проверить и сохранить».</span>
+              <b data-i18n="guide.s5.title">Скопируйте ключ</b>
+              <span data-i18n="guide.s5.text">Это строка из 32 символов в поле «Ключ». Вставьте её слева и нажмите «Проверить и сохранить».</span>
             </li>
           </ol>
-          <div class="callout">
+          <div class="callout" data-i18n-html="guide.warn">
             <b>Никому не передавайте ключ.</b> С ним можно действовать от имени вашего аккаунта через Web API. Если ключ утёк — на той же странице нажмите «Отозвать мой ключ API».
           </div>
           <div class="callout soft">
-            <b>Для режима «Библиотека»</b> в настройках приватности профиля Steam параметр «Игровая информация» должен быть «Открытый».
-            <button class="btn-link" data-open="https://steamcommunity.com/my/edit/settings">Открыть настройки приватности</button>
+            <span data-i18n-html="guide.library"><b>Для режима «Библиотека»</b> в настройках приватности профиля Steam параметр «Игровая информация» должен быть «Открытый».</span>
+            <button class="btn-link" data-open="https://steamcommunity.com/my/edit/settings" data-i18n="guide.privacy">Открыть настройки приватности</button>
           </div>
         </div>
       </div>
@@ -114,60 +114,60 @@
       <aside class="sidebar" id="filters">
         <div class="sidebar-head">
           <div class="sidebar-title">
-            <span>Фильтры</span>
+            <span data-i18n="filters.title">Фильтры</span>
             <div class="info" id="filterHelp">
               <button class="info-btn" id="filterHelpBtn" aria-expanded="false" aria-controls="filterHelpPop"><svg><use href="#i-info"/></svg></button>
               <div class="info-pop" id="filterHelpPop" role="tooltip"></div>
             </div>
           </div>
-          <button class="btn-link" id="resetFilters">Сбросить</button>
+          <button class="btn-link" id="resetFilters" data-i18n="filters.reset">Сбросить</button>
         </div>
 
         <div class="block">
-          <div class="block-title">Быстрые подборки</div>
+          <div class="block-title" data-i18n="block.presets">Быстрые подборки</div>
           <div class="presets" id="presets"></div>
         </div>
 
         <div class="block only-library">
-          <div class="block-title">Время в игре</div>
+          <div class="block-title" data-i18n="block.playtime">Время в игре</div>
           <div class="seg" data-seg="playtime">
-            <button data-value="any">Любое</button>
-            <button data-value="never">Не играл</button>
-            <button data-value="under">Меньше</button>
-            <button data-value="over">Больше</button>
+            <button data-value="any" data-i18n="playtime.any">Любое</button>
+            <button data-value="never" data-i18n="playtime.never">Не играл</button>
+            <button data-value="under" data-i18n="playtime.under">Меньше</button>
+            <button data-value="over" data-i18n="playtime.over">Больше</button>
           </div>
           <label class="inline-field" id="playtimeHoursField">
-            <input type="number" min="0" step="1" data-f="playtimeHours"> <span>часов</span>
+            <input type="number" min="0" step="1" data-f="playtimeHours"> <span data-i18n="playtime.hours">часов</span>
           </label>
           <div class="library-stats" id="libraryStats"></div>
         </div>
 
         <div class="block">
-          <div class="block-title">Метки <span class="counter" id="tagCounter"></span></div>
-          <input type="search" id="tagSearch" placeholder="Поиск меток: рогалик, хоррор…">
+          <div class="block-title"><span data-i18n="block.tags">Метки</span> <span class="counter" id="tagCounter"></span></div>
+          <input type="search" id="tagSearch" placeholder="Поиск меток: рогалик, хоррор…" data-i18n-placeholder="tags.search">
           <div class="tag-selected" id="tagSelected"></div>
-          <div class="tag-list" id="tagList"><div class="muted small">Загрузка меток…</div></div>
-          <div class="hint">Клик: <span class="tag-mark inc">включить</span> → <span class="tag-mark exc">исключить</span> → сбросить</div>
+          <div class="tag-list" id="tagList"><div class="muted small" data-i18n="tags.loading">Загрузка меток…</div></div>
+          <div class="hint" data-i18n-html="tags.hint">Клик: <span class="tag-mark inc">включить</span> → <span class="tag-mark exc">исключить</span> → сбросить</div>
         </div>
 
         <div class="block only-store">
-          <div class="block-title">Цена</div>
+          <div class="block-title" data-i18n="block.price">Цена</div>
           <div class="seg" data-seg="priceMode">
-            <button data-value="any">Любая</button>
-            <button data-value="free">Бесплатно</button>
-            <button data-value="paid">Платные</button>
+            <button data-value="any" data-i18n="price.any">Любая</button>
+            <button data-value="free" data-i18n="price.free">Бесплатно</button>
+            <button data-value="paid" data-i18n="price.paid">Платные</button>
           </div>
           <div class="range-inputs paid-only">
-            <input type="number" min="0" placeholder="от" data-f="priceMin">
+            <input type="number" min="0" placeholder="от" data-i18n-placeholder="range.from" data-f="priceMin">
             <span class="dash">—</span>
-            <input type="number" min="0" placeholder="до" data-f="priceMax">
+            <input type="number" min="0" placeholder="до" data-i18n-placeholder="range.to" data-f="priceMax">
             <span class="currency" id="currencyLabel">₽</span>
           </div>
-          <label class="check paid-only"><input type="checkbox" data-f="onSale"><span>Только со скидкой</span></label>
+          <label class="check paid-only"><input type="checkbox" data-f="onSale"><span data-i18n="price.onSale">Только со скидкой</span></label>
           <label class="select-field paid-only">
-            <span>Скидка от</span>
+            <span data-i18n="price.discountFrom">Скидка от</span>
             <select data-f="minDiscount">
-              <option value="0">любой</option>
+              <option value="0" data-i18n="price.discountAny">любой</option>
               <option value="25">25%</option>
               <option value="50">50%</option>
               <option value="75">75%</option>
@@ -177,40 +177,40 @@
         </div>
 
         <div class="block">
-          <div class="block-title">Обзоры</div>
+          <div class="block-title" data-i18n="block.reviews">Обзоры</div>
           <div class="slider-field">
-            <div class="slider-top"><span>Положительных от</span><b id="minPositiveValue">0%</b></div>
+            <div class="slider-top"><span data-i18n="reviews.positiveFrom">Положительных от</span><b id="minPositiveValue">0%</b></div>
             <input type="range" min="0" max="95" step="5" data-f="minPositive">
           </div>
           <div class="range-inputs">
-            <input type="number" min="0" placeholder="отзывов от" data-f="minReviews">
+            <input type="number" min="0" placeholder="отзывов от" data-i18n-placeholder="reviews.countFrom" data-f="minReviews">
             <span class="dash">—</span>
-            <input type="number" min="0" placeholder="до" data-f="maxReviews">
+            <input type="number" min="0" placeholder="до" data-i18n-placeholder="range.to" data-f="maxReviews">
           </div>
         </div>
 
         <div class="block">
-          <div class="block-title">Дата выхода</div>
+          <div class="block-title" data-i18n="block.release">Дата выхода</div>
           <div class="range-inputs">
-            <input type="number" min="1985" max="2100" placeholder="с года" data-f="yearFrom">
+            <input type="number" min="1985" max="2100" placeholder="с года" data-i18n-placeholder="year.from" data-f="yearFrom">
             <span class="dash">—</span>
-            <input type="number" min="1985" max="2100" placeholder="по год" data-f="yearTo">
+            <input type="number" min="1985" max="2100" placeholder="по год" data-i18n-placeholder="year.to" data-f="yearTo">
           </div>
-          <label class="check"><input type="checkbox" data-f="hideUnreleased"><span>Скрыть ещё не вышедшие</span></label>
+          <label class="check"><input type="checkbox" data-f="hideUnreleased"><span data-i18n="release.hideUnreleased">Скрыть ещё не вышедшие</span></label>
         </div>
 
         <div class="block">
-          <div class="block-title">Количество игроков</div>
+          <div class="block-title" data-i18n="block.players">Количество игроков</div>
           <div class="checks" id="playersList"></div>
         </div>
 
         <div class="block">
-          <div class="block-title">Особенности</div>
+          <div class="block-title" data-i18n="block.features">Особенности</div>
           <div class="checks" id="featuresList"></div>
         </div>
 
         <div class="block">
-          <div class="block-title">Платформы и устройства</div>
+          <div class="block-title" data-i18n="block.platforms">Платформы и устройства</div>
           <div class="os-toggles">
             <label class="os"><input type="checkbox" data-f-group="os" value="win"><span><svg><use href="#i-win"/></svg>Windows</span></label>
             <label class="os"><input type="checkbox" data-f-group="os" value="mac"><span><svg><use href="#i-mac"/></svg>macOS</span></label>
@@ -218,33 +218,33 @@
           </div>
           <div class="sub-label">Steam Deck</div>
           <div class="seg" data-seg="deck">
-            <button data-value="any">Любая</button>
-            <button data-value="playable">Играбельно+</button>
-            <button data-value="verified">Проверено</button>
+            <button data-value="any" data-i18n="deck.any">Любая</button>
+            <button data-value="playable" data-i18n="deck.playable">Играбельно+</button>
+            <button data-value="verified" data-i18n="deck.verified">Проверено</button>
           </div>
-          <div class="sub-label">Виртуальная реальность</div>
+          <div class="sub-label" data-i18n="vr.title">Виртуальная реальность</div>
           <div class="seg" data-seg="vr">
-            <button data-value="any">Неважно</button>
-            <button data-value="only">Только VR</button>
-            <button data-value="exclude">Без VR</button>
+            <button data-value="any" data-i18n="vr.any">Неважно</button>
+            <button data-value="only" data-i18n="vr.only">Только VR</button>
+            <button data-value="exclude" data-i18n="vr.exclude">Без VR</button>
           </div>
         </div>
 
         <div class="block only-store">
-          <div class="block-title">Язык</div>
+          <div class="block-title" data-i18n="block.language">Язык</div>
           <label class="select-field">
-            <span>Поддерживает</span>
+            <span data-i18n="language.supports">Поддерживает</span>
             <select data-f="language" id="languageSelect"></select>
           </label>
         </div>
 
         <div class="block">
-          <div class="block-title">Прочее</div>
-          <label class="check"><input type="checkbox" data-f="hideEarlyAccess"><span>Без раннего доступа</span></label>
-          <label class="check"><input type="checkbox" data-f="hideAdult"><span>Скрыть контент 18+</span></label>
-          <label class="check only-store"><input type="checkbox" data-f="topSellers"><span>Только лидеры продаж</span></label>
-          <label class="check only-store"><input type="checkbox" data-f="excludeOwned"><span>Исключить игры из моей библиотеки</span></label>
-          <label class="check"><input type="checkbox" data-f="noRepeat"><span>Не повторять выпавшие ранее</span></label>
+          <div class="block-title" data-i18n="block.misc">Прочее</div>
+          <label class="check"><input type="checkbox" data-f="hideEarlyAccess"><span data-i18n="misc.noEarlyAccess">Без раннего доступа</span></label>
+          <label class="check"><input type="checkbox" data-f="hideAdult"><span data-i18n="misc.hideAdult">Скрыть контент 18+</span></label>
+          <label class="check only-store"><input type="checkbox" data-f="topSellers"><span data-i18n="misc.topSellers">Только лидеры продаж</span></label>
+          <label class="check only-store"><input type="checkbox" data-f="excludeOwned"><span data-i18n="misc.excludeOwned">Исключить игры из моей библиотеки</span></label>
+          <label class="check"><input type="checkbox" data-f="noRepeat"><span data-i18n="misc.noRepeat">Не повторять выпавшие ранее</span></label>
         </div>
       </aside>
 
@@ -258,22 +258,22 @@
             </div>
             <button class="btn-roll" id="rollBtn">
               <svg><use href="#i-dice"/></svg>
-              <span>Мне повезёт</span>
+              <span data-i18n="roll.button">Мне повезёт</span>
             </button>
           </div>
 
           <div class="notice hidden" id="libraryNotice">
             <div>
-              <b>Режим «Библиотека» выбирает игру из ваших собственных.</b>
-              <span>Укажите профиль Steam в настройках, чтобы загрузить список игр.</span>
+              <b data-i18n="libraryNotice.title">Режим «Библиотека» выбирает игру из ваших собственных.</b>
+              <span data-i18n="libraryNotice.text">Укажите профиль Steam в настройках, чтобы загрузить список игр.</span>
             </div>
-            <button class="btn-soft" id="goSettings">Открыть настройки</button>
+            <button class="btn-soft" id="goSettings" data-i18n="libraryNotice.button">Открыть настройки</button>
           </div>
 
           <div class="empty" id="emptyState">
             <div class="empty-dice"><svg><use href="#i-dice"/></svg></div>
-            <h2>Не знаете, во что поиграть?</h2>
-            <p>Настройте фильтры слева — метки, цену, отзывы, год выхода — и нажмите «Мне повезёт».</p>
+            <h2 data-i18n="empty.title">Не знаете, во что поиграть?</h2>
+            <p data-i18n="empty.text">Настройте фильтры слева — метки, цену, отзывы, год выхода — и нажмите «Мне повезёт».</p>
           </div>
 
           <div class="rolling hidden" id="rollingState">
@@ -284,7 +284,7 @@
           <div class="error-state hidden" id="errorState">
             <h2 id="errorTitle">Ничего не нашлось</h2>
             <p id="errorText"></p>
-            <button class="btn-soft" id="errorRetry">Попробовать ещё раз</button>
+            <button class="btn-soft" id="errorRetry" data-i18n="error.retry">Попробовать ещё раз</button>
           </div>
 
           <article class="game hidden" id="gameCard">
@@ -296,8 +296,8 @@
               <div class="game-media">
                 <div class="media-main">
                   <img id="gMedia" alt="">
-                  <button class="media-arrow prev" id="gMediaPrev" title="Предыдущий скриншот"><svg><use href="#i-chevron-left"/></svg></button>
-                  <button class="media-arrow next" id="gMediaNext" title="Следующий скриншот"><svg><use href="#i-chevron-right"/></svg></button>
+                  <button class="media-arrow prev" id="gMediaPrev" title="Предыдущий скриншот" data-i18n-title="game.prevShot"><svg><use href="#i-chevron-left"/></svg></button>
+                  <button class="media-arrow next" id="gMediaNext" title="Следующий скриншот" data-i18n-title="game.nextShot"><svg><use href="#i-chevron-right"/></svg></button>
                 </div>
                 <div class="shots" id="gShots"></div>
               </div>
@@ -305,12 +305,12 @@
                 <img class="game-header" id="gHeader" alt="">
                 <p class="game-desc" id="gDesc"></p>
                 <div class="meta">
-                  <div class="meta-row"><span>Обзоры:</span><b id="gReviews"></b></div>
-                  <div class="meta-row"><span>Дата выхода:</span><b id="gDate"></b></div>
-                  <div class="meta-row"><span>Разработчик:</span><b class="accent-text" id="gDev"></b></div>
-                  <div class="meta-row"><span>Издатель:</span><b class="accent-text" id="gPub"></b></div>
+                  <div class="meta-row"><span data-i18n="game.reviews">Обзоры:</span><b id="gReviews"></b></div>
+                  <div class="meta-row"><span data-i18n="game.date">Дата выхода:</span><b id="gDate"></b></div>
+                  <div class="meta-row"><span data-i18n="game.developer">Разработчик:</span><b class="accent-text" id="gDev"></b></div>
+                  <div class="meta-row"><span data-i18n="game.publisher">Издатель:</span><b class="accent-text" id="gPub"></b></div>
                 </div>
-                <div class="tags-label">Популярные метки:</div>
+                <div class="tags-label" data-i18n="game.tags">Популярные метки:</div>
                 <div class="game-tags" id="gTags"></div>
               </div>
             </div>
@@ -319,17 +319,17 @@
               <div class="badges" id="gBadges"></div>
               <div class="buy-box">
                 <div class="price" id="gPrice"></div>
-                <button class="btn-accent" id="gOpenSteam"><svg><use href="#i-steam"/></svg> Открыть в Steam</button>
-                <button class="btn-soft" id="gOpenWeb"><svg><use href="#i-ext"/></svg> В браузере</button>
-                <button class="btn-soft" id="gReroll"><svg><use href="#i-dice"/></svg> Другую</button>
+                <button class="btn-accent" id="gOpenSteam"><svg><use href="#i-steam"/></svg> <span data-i18n="game.openSteam">Открыть в Steam</span></button>
+                <button class="btn-soft" id="gOpenWeb"><svg><use href="#i-ext"/></svg> <span data-i18n="game.openWeb">В браузере</span></button>
+                <button class="btn-soft" id="gReroll"><svg><use href="#i-dice"/></svg> <span data-i18n="game.reroll">Другую</span></button>
               </div>
             </div>
           </article>
 
           <section class="history" id="historySection">
             <div class="history-head">
-              <span>Недавно выпавшие</span>
-              <button class="btn-link" id="clearHistory">Очистить</button>
+              <span data-i18n="history.title">Недавно выпавшие</span>
+              <button class="btn-link" id="clearHistory" data-i18n="history.clear">Очистить</button>
             </div>
             <div class="history-list" id="historyList"></div>
           </section>
@@ -340,26 +340,26 @@
     <!-- ============ SETTINGS ============ -->
     <section class="view" id="view-settings" hidden>
       <div class="settings">
-        <h1>Настройки</h1>
+        <h1 data-i18n="settings.title">Настройки</h1>
 
         <div class="panel setting" data-desktop-only>
           <div class="setting-head">
             <h2>Steam Web API Key</h2>
             <span class="status ok" id="keyStatus"></span>
           </div>
-          <p class="muted">Ключ хранится в зашифрованном виде в файле <code id="settingsKeyStorePath"></code></p>
-          <div class="form-error hidden" data-volatile-key>Шифрование недоступно в этой системе: ключ сохранён только до закрытия приложения.</div>
+          <p class="muted"><span data-i18n="settings.keyStored">Ключ хранится в зашифрованном виде в файле</span> <code id="settingsKeyStorePath"></code></p>
+          <div class="form-error hidden" data-volatile-key data-i18n="settings.volatile">Шифрование недоступно в этой системе: ключ сохранён только до закрытия приложения.</div>
           <div class="btn-row">
-            <button class="btn-soft" id="changeKey">Изменить ключ</button>
-            <button class="btn-danger" id="removeKey">Удалить ключ</button>
-            <button class="btn-link" data-open="https://steamcommunity.com/dev/apikey">Управление ключом в Steam</button>
+            <button class="btn-soft" id="changeKey" data-i18n="settings.changeKey">Изменить ключ</button>
+            <button class="btn-danger" id="removeKey" data-i18n="settings.removeKey">Удалить ключ</button>
+            <button class="btn-link" data-open="https://steamcommunity.com/dev/apikey" data-i18n="settings.manageKey">Управление ключом в Steam</button>
           </div>
         </div>
 
         <div class="panel setting">
-          <div class="setting-head"><h2>Профиль Steam</h2></div>
-          <p class="muted">Используется для режима «Библиотека» и фильтра «Исключить игры из моей библиотеки».</p>
-          <p class="muted" data-web-only>Профиль запоминается только в этом браузере. Список игр Steam отдаёт, только если в настройках приватности «Игровая информация» открыта.</p>
+          <div class="setting-head"><h2 data-i18n="profile.title">Профиль Steam</h2></div>
+          <p class="muted" data-i18n="profile.usage">Используется для режима «Библиотека» и фильтра «Исключить игры из моей библиотеки».</p>
+          <p class="muted" data-web-only data-i18n="profile.webNote">Профиль запоминается только в этом браузере. Список игр Steam отдаёт, только если в настройках приватности «Игровая информация» открыта.</p>
           <div class="profile-card hidden" id="settingsProfile">
             <img alt="" id="settingsAvatar">
             <div>
@@ -369,24 +369,24 @@
           </div>
           <div class="input-row">
             <input type="text" id="profileInput" placeholder="https://steamcommunity.com/id/ваш_ник или SteamID64" spellcheck="false">
-            <button class="btn-accent" id="saveProfile">Сохранить</button>
+            <button class="btn-accent" id="saveProfile" data-i18n="common.save">Сохранить</button>
           </div>
           <div class="form-error" id="profileError" hidden></div>
           <div class="btn-row">
-            <button class="btn-soft" id="refreshOwned">Обновить библиотеку</button>
-            <button class="btn-link" data-open="https://steamcommunity.com/my/edit/settings">Настройки приватности Steam</button>
+            <button class="btn-soft" id="refreshOwned" data-i18n="profile.refresh">Обновить библиотеку</button>
+            <button class="btn-link" data-open="https://steamcommunity.com/my/edit/settings" data-i18n="profile.privacy">Настройки приватности Steam</button>
           </div>
         </div>
 
         <div class="panel setting">
-          <div class="setting-head"><h2>Регион и язык</h2></div>
-          <p class="muted">Регион определяет валюту и цены, язык — описания и названия меток.</p>
-          <p class="muted" data-web-only>Настройки сохраняются только в этом браузере.</p>
+          <div class="setting-head"><h2 data-i18n="region.title">Регион и язык</h2></div>
+          <p class="muted" data-i18n="region.text">Регион определяет валюту и цены, язык — интерфейс, описания и названия меток.</p>
+          <p class="muted" data-web-only data-i18n="region.webNote">Настройки сохраняются только в этом браузере.</p>
           <div class="grid-2">
-            <label class="select-field stacked"><span>Регион магазина</span><select id="regionSelect"></select></label>
-            <label class="select-field stacked"><span>Язык описаний</span><select id="uiLangSelect"></select></label>
+            <label class="select-field stacked"><span data-i18n="region.region">Регион магазина</span><select id="regionSelect"></select></label>
+            <label class="select-field stacked"><span data-i18n="region.language">Язык интерфейса и описаний</span><select id="uiLangSelect"></select></label>
           </div>
-          <button class="btn-accent" id="saveRegion">Применить</button>
+          <button class="btn-accent" id="saveRegion" data-i18n="region.apply">Применить</button>
         </div>
       </div>
     </section>
@@ -396,18 +396,19 @@
     <div class="lightbox-panel">
       <div class="lightbox-view">
         <img alt="" id="lightboxImg">
-        <button class="lightbox-arrow prev" id="lightboxPrev" title="Предыдущий скриншот"><svg><use href="#i-chevron-left"/></svg></button>
-        <button class="lightbox-arrow next" id="lightboxNext" title="Следующий скриншот"><svg><use href="#i-chevron-right"/></svg></button>
+        <button class="lightbox-arrow prev" id="lightboxPrev" title="Предыдущий скриншот" data-i18n-title="game.prevShot"><svg><use href="#i-chevron-left"/></svg></button>
+        <button class="lightbox-arrow next" id="lightboxNext" title="Следующий скриншот" data-i18n-title="game.nextShot"><svg><use href="#i-chevron-right"/></svg></button>
       </div>
       <div class="lightbox-bar">
-        <a href="#" id="lightboxFull">Показать в полном размере</a>
+        <a href="#" id="lightboxFull" data-i18n="lightbox.full">Показать в полном размере</a>
         <span class="lightbox-count" id="lightboxCount"></span>
-        <button class="lightbox-close" id="lightboxClose" title="Закрыть (Esc)">Закрыть</button>
+        <button class="lightbox-close" id="lightboxClose" title="Закрыть (Esc)" data-i18n-title="lightbox.closeTitle" data-i18n="lightbox.close">Закрыть</button>
       </div>
     </div>
   </div>
   <div class="toast" id="toast"></div>
 
+  <script src="i18n.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>

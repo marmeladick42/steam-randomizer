@@ -7,6 +7,7 @@ const path = require('path');
 const { parse } = require('../lib/env');
 const steam = require('../lib/steam');
 const randomizer = require('../lib/randomizer');
+const i18n = require('../renderer/i18n');
 
 const ROOT = path.join(__dirname, '..');
 const RENDERER = path.join(ROOT, 'renderer');
@@ -50,15 +51,18 @@ const config = loadConfig();
 
 // ---------- helpers ----------
 
+// Like SteamError: `key` names an `err.*` string in renderer/i18n.js, translated per visitor in errorBody().
 class HttpError extends Error {
-  constructor(status, message, code) {
-    super(message);
+  constructor(status, key, code, params) {
+    super(i18n.translate(i18n.DEFAULT_LANG, `err.${key}`, params));
     this.status = status;
+    this.key = key;
+    this.params = params;
     this.code = code;
   }
 }
 
-const badRequest = (message) => new HttpError(400, message, 'BAD_REQUEST');
+const badRequest = (key) => new HttpError(400, key, 'BAD_REQUEST');
 
 // Behind cloudflared every request comes from loopback; the real visitor IP is in the proxy headers.
 // Those headers are trusted only on loopback connections, where nobody else can set them.
@@ -84,7 +88,7 @@ function rateLimit(bucket, ip) {
   }
   if (++entry.count > LIMITS[bucket]) {
     const wait = Math.ceil((entry.resetAt - now) / 1000);
-    throw new HttpError(429, `Слишком много запросов — подождите ${wait} с и попробуйте снова`, 'TOO_MANY');
+    throw new HttpError(429, 'tooMany', 'TOO_MANY', { wait });
   }
 }
 
@@ -102,22 +106,28 @@ function sendJson(res, status, body) {
   res.end(data);
 }
 
-function errorBody(err, where) {
+// The interface language comes from the X-UI-Lang header that web/api.js sends with every request.
+function uiLang(req) {
+  const lang = String(req.headers['x-ui-lang'] || '');
+  return i18n.LANGS.includes(lang) ? lang : config.lang;
+}
+
+function errorBody(err, where, lang) {
   if (err instanceof HttpError || err instanceof steam.SteamError) {
-    const message = err.code === 'BAD_KEY' ? 'Ключ Steam API на сервере больше не действует — сообщите владельцу сайта' : err.message;
+    const message = err.code === 'BAD_KEY' ? i18n.translate(lang, 'err.serverBadKey') : i18n.errorText(err, lang);
     return { ok: false, error: scrub(message), code: err.code };
   }
   console.error(`[${where}]`, scrub(err && err.stack ? err.stack : err));
-  return { ok: false, error: 'Внутренняя ошибка сервера', code: 'SERVER' };
+  return { ok: false, error: i18n.translate(lang, 'err.internal'), code: 'SERVER' };
 }
 
 async function readJson(req) {
-  if (!String(req.headers['content-type'] || '').startsWith('application/json')) throw badRequest('Ожидается JSON');
+  if (!String(req.headers['content-type'] || '').startsWith('application/json')) throw badRequest('expectJson');
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > MAX_BODY) throw new HttpError(413, 'Слишком большой запрос', 'BAD_REQUEST');
+    if (size > MAX_BODY) throw new HttpError(413, 'bodyTooLarge', 'BAD_REQUEST');
     chunks.push(chunk);
   }
   try {
@@ -125,7 +135,7 @@ async function readJson(req) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error();
     return body;
   } catch {
-    throw badRequest('Некорректный JSON');
+    throw badRequest('badJson');
   }
 }
 
@@ -134,22 +144,22 @@ async function readJson(req) {
 function visitorSettings(body) {
   const cc = body.cc || config.cc;
   const lang = body.lang || config.lang;
-  if (!/^[a-z]{2}$/.test(cc) || !/^[a-z]{2,12}$/.test(lang)) throw badRequest('Некорректный регион или язык');
+  if (!/^[a-z]{2}$/.test(cc) || !/^[a-z]{2,12}$/.test(lang)) throw badRequest('badRegion');
   return { key: config.key, steamId: steamIdOf(body, false), cc, lang };
 }
 
 function steamIdOf(body, required = true) {
   const id = body.steamId ? String(body.steamId) : '';
-  if (id && !/^7656\d{13}$/.test(id)) throw badRequest('Некорректный SteamID');
-  if (required && !id) throw new steam.SteamError('Укажите свой профиль Steam в настройках', { code: 'NO_PROFILE' });
+  if (id && !/^7656\d{13}$/.test(id)) throw badRequest('badSteamId');
+  if (required && !id) throw new steam.SteamError('noProfile', { code: 'NO_PROFILE' });
   return id;
 }
 
 const idList = (value, max) => {
   if (value === undefined) return [];
-  if (!Array.isArray(value) || value.length > max) throw badRequest('Некорректный список');
+  if (!Array.isArray(value) || value.length > max) throw badRequest('badList');
   return value.map((v) => {
-    if (!Number.isSafeInteger(v) || v < 0) throw badRequest('Некорректный идентификатор');
+    if (!Number.isSafeInteger(v) || v < 0) throw badRequest('badId');
     return v;
   });
 };
@@ -158,7 +168,7 @@ const OS_IDS = ['win', 'mac', 'linux'];
 
 // Only known filter fields reach the randomizer, with sane types.
 function cleanFilters(f) {
-  if (!f || typeof f !== 'object' || Array.isArray(f)) throw badRequest('Некорректные фильтры');
+  if (!f || typeof f !== 'object' || Array.isArray(f)) throw badRequest('badFilterInput');
   const out = {};
   const scalar = (v) => (v === null || v === undefined ? '' : typeof v === 'number' || typeof v === 'boolean' ? v : String(v).slice(0, 32));
   for (const key of ['priceMode', 'priceMin', 'priceMax', 'minDiscount', 'minPositive', 'minReviews', 'maxReviews', 'yearFrom',
@@ -172,9 +182,9 @@ function cleanFilters(f) {
   out.excludeTags = idList(f.excludeTags, 50);
   out.players = idList(f.players, 20);
   out.features = idList(f.features, 20);
-  if (!Array.isArray(f.os || []) || (f.os || []).some((o) => !OS_IDS.includes(o))) throw badRequest('Некорректные платформы');
+  if (!Array.isArray(f.os || []) || (f.os || []).some((o) => !OS_IDS.includes(o))) throw badRequest('badPlatforms');
   out.os = [...new Set(f.os || [])];
-  if (out.language && !/^[a-z_]{2,24}$/.test(out.language)) throw badRequest('Некорректный язык');
+  if (out.language && !/^[a-z_]{2,24}$/.test(out.language)) throw badRequest('badLanguage');
   return out;
 }
 
@@ -249,7 +259,7 @@ async function handleRoll(req, res, body) {
   if (mode === 'library' || filters.excludeOwned) steamIdOf(body);
 
   if (activeRolls >= MAX_ROLLS_AT_ONCE) {
-    throw new HttpError(503, 'Сервер сейчас занят другими поисками — попробуйте через несколько секунд', 'BUSY');
+    throw new HttpError(503, 'busy', 'BUSY');
   }
   activeRolls++;
   const controller = new AbortController();
@@ -277,7 +287,7 @@ async function handleRoll(req, res, body) {
     }
     write({ ok: true, data: await randomizer.describe(result, s, names) });
   } catch (err) {
-    if (!controller.signal.aborted) write(errorBody(err, 'roll'));
+    if (!controller.signal.aborted) write(errorBody(err, 'roll', uiLang(req)));
   } finally {
     activeRolls--;
     res.end();
@@ -286,19 +296,19 @@ async function handleRoll(req, res, body) {
 
 async function handleApi(req, res, name, ip) {
   try {
-    if (req.method !== 'POST') throw new HttpError(405, 'Метод не поддерживается', 'BAD_REQUEST');
+    if (req.method !== 'POST') throw new HttpError(405, 'badMethod', 'BAD_REQUEST');
     if (name === 'roll') {
       rateLimit('roll', ip);
       return await handleRoll(req, res, await readJson(req));
     }
     const route = Object.hasOwn(routes, name) ? routes[name] : null;
-    if (!route) throw new HttpError(404, 'Неизвестный запрос', 'BAD_REQUEST');
+    if (!route) throw new HttpError(404, 'unknownRequest', 'BAD_REQUEST');
     rateLimit(route.bucket, ip);
     const body = await readJson(req);
     sendJson(res, 200, { ok: true, data: await route.run(body) });
   } catch (err) {
     if (res.headersSent) return res.end();
-    sendJson(res, err instanceof HttpError ? err.status : 200, errorBody(err, name));
+    sendJson(res, err instanceof HttpError ? err.status : 200, errorBody(err, name, uiLang(req)));
   }
 }
 

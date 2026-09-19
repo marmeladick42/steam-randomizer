@@ -25,12 +25,15 @@
   let memory = local.get();
   let defaults = { cc: 'us', lang: 'russian' };
 
-  const failure = (error, code) => ({ ok: false, error, code });
+  const visitor = () => ({ steamId: memory.steamId || '', cc: memory.cc || defaults.cc, lang: memory.lang || defaults.lang });
+
+  // Client-side errors, in the visitor's interface language (the server translates its own errors).
+  const failure = (key, code, params) => ({ ok: false, error: window.I18N.translate(visitor().lang, `err.${key}`, params), code });
 
   const post = (name, body = {}) =>
     fetch(`api/${name}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-UI-Lang': visitor().lang },
       body: JSON.stringify(body),
     });
 
@@ -39,24 +42,22 @@
       const res = await post(name, body);
       return await res.json();
     } catch {
-      return failure('Нет связи с сервером', 'OFFLINE');
+      return failure('offline', 'OFFLINE');
     }
   }
-
-  const visitor = () => ({ steamId: memory.steamId || '', cc: memory.cc || defaults.cc, lang: memory.lang || defaults.lang });
 
   async function roll(payload) {
     let res;
     try {
       res = await post('roll', { ...payload, ...visitor() });
     } catch {
-      return failure('Нет связи с сервером', 'OFFLINE');
+      return failure('offline', 'OFFLINE');
     }
     if (!String(res.headers.get('content-type')).includes('ndjson')) {
       try {
         return await res.json();
       } catch {
-        return failure(`Сервер вернул ошибку ${res.status}`, 'SERVER');
+        return failure('serverStatus', 'SERVER', { status: String(res.status) });
       }
     }
     const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -77,10 +78,10 @@
     } catch {
       /* falls through to the error below */
     }
-    return failure('Соединение с сервером прервалось', 'OFFLINE');
+    return failure('connectionLost', 'OFFLINE');
   }
 
-  const unavailable = () => Promise.resolve(failure('Ключ API задаётся только на сервере', 'WEB'));
+  const unavailable = () => Promise.resolve(failure('webKeyOnly', 'WEB'));
 
   window.api = {
     platform: 'web',
@@ -103,7 +104,7 @@
       return res;
     },
     async saveRegion({ cc, lang }) {
-      if (!/^[a-z]{2}$/.test(cc) || !/^[a-z]{2,12}$/.test(lang)) return failure('Некорректный регион или язык');
+      if (!/^[a-z]{2}$/.test(cc) || !/^[a-z]{2,12}$/.test(lang)) return failure('badRegion');
       local.set({ cc, lang });
       return { ok: true, data: true };
     },
@@ -117,10 +118,10 @@
     async open(url) {
       if (/^https:\/\//.test(url)) window.open(url, '_blank', 'noopener,noreferrer');
       else if (/^steam:\/\//.test(url)) window.location.href = url;
-      else return failure('Недопустимая ссылка');
+      else return failure('badLink');
       return { ok: true, data: true };
     },
-    // Hands the link to the Steam client if it is installed; "В браузере" covers the rest.
+    // Hands the link to the Steam client if it is installed; the "In browser" button covers the rest.
     async openApp(appid) {
       window.location.href = `steam://store/${Number(appid)}`;
       return { ok: true, data: true };

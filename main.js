@@ -5,6 +5,7 @@ const { EnvFile } = require('./lib/env');
 const secrets = require('./lib/secrets');
 const steam = require('./lib/steam');
 const randomizer = require('./lib/randomizer');
+const i18n = require('./renderer/i18n');
 
 const DEFAULTS = { cc: 'us', lang: 'russian' };
 
@@ -59,6 +60,14 @@ function settings() {
   };
 }
 
+function uiLang() {
+  try {
+    return settings().lang;
+  } catch {
+    return DEFAULTS.lang;
+  }
+}
+
 async function tagNames(lang) {
   if (!tagCache.has(lang)) {
     const tags = await steam.getTags(lang);
@@ -69,21 +78,22 @@ async function tagNames(lang) {
 
 async function ownedGames(force = false) {
   const s = settings();
-  if (!s.steamId) throw new steam.SteamError('Укажите свой профиль Steam в настройках', { code: 'NO_PROFILE' });
+  if (!s.steamId) throw new steam.SteamError('noProfile', { code: 'NO_PROFILE' });
   if (force || !ownedCache || ownedCache.steamid !== s.steamId || Date.now() - ownedCache.fetchedAt > 30 * 60e3) {
     ownedCache = { steamid: s.steamId, games: await steam.getOwnedGames(s.key, s.steamId), fetchedAt: Date.now() };
   }
   return ownedCache.games;
 }
 
-// Wraps IPC handlers so the renderer always gets { ok, data } / { ok:false, error, code }.
+// Wraps IPC handlers so the renderer always gets { ok, data } / { ok:false, error, code },
+// with `error` in the interface language.
 function handle(channel, fn) {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
       return { ok: true, data: await fn(event, ...args) };
     } catch (err) {
       if (!(err instanceof steam.SteamError)) console.error(`[${channel}]`, err);
-      return { ok: false, error: err.message || String(err), code: err.code };
+      return { ok: false, error: i18n.errorText(err, uiLang()), code: err.code };
     }
   });
 }
@@ -130,7 +140,7 @@ function registerIpc() {
   });
 
   handle('config:saveRegion', (_e, { cc, lang }) => {
-    if (!/^[a-z]{2}$/.test(cc) || !/^[a-z]{2,12}$/.test(lang)) throw new Error('Некорректный регион или язык');
+    if (!/^[a-z]{2}$/.test(cc) || !/^[a-z]{2,12}$/.test(lang)) throw new steam.SteamError('badRegion');
     env.update({ STEAM_REGION: cc, STEAM_LANGUAGE: lang });
     return true;
   });
@@ -173,7 +183,7 @@ function registerIpc() {
   });
 
   handle('shell:open', (_e, url) => {
-    if (!/^(https:\/\/|steam:\/\/)/.test(url)) throw new Error('Недопустимая ссылка');
+    if (!/^(https:\/\/|steam:\/\/)/.test(url)) throw new steam.SteamError('badLink');
     return shell.openExternal(url);
   });
 

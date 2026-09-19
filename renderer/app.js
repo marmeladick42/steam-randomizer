@@ -1,5 +1,6 @@
 // `api` is exposed by preload.js via contextBridge (desktop) or by web/api.js (browser, `api.platform === 'web'`).
 const D = window.DATA;
+const I = window.I18N;
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
@@ -68,15 +69,34 @@ function toast(message, isError = false) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
 }
 
-const fmtNum = (n) => Number(n).toLocaleString('ru-RU');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function plural(n, forms) {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return forms[0];
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return forms[1];
-  return forms[2];
+// ---------- i18n ----------
+// The interface language is the "Язык интерфейса и описаний" setting (config.lang), shared with Steam descriptions and tags.
+const uiLang = () => state.config?.lang || I.DEFAULT_LANG;
+const t = (key, params, options) => I.translate(uiLang(), key, params, options);
+
+function applyStaticText() {
+  document.documentElement.lang = I.locale(uiLang()).slice(0, 2);
+  for (const node of $$('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+  for (const node of $$('[data-i18n-html]')) node.innerHTML = t(node.dataset.i18nHtml); // trusted strings from i18n.js
+  for (const node of $$('[data-i18n-placeholder]')) node.placeholder = t(node.dataset.i18nPlaceholder);
+  for (const node of $$('[data-i18n-title]')) node.title = t(node.dataset.i18nTitle);
+}
+
+// Re-renders every piece of text already on screen, so switching the language needs no reload.
+function applyLanguage() {
+  applyStaticText();
+  renderStaticFilters();
+  writeFiltersToDom();
+  renderModeText();
+  renderFilterHelp();
+  renderHistory();
+  if (state.owned) renderOwnedStats();
+  if (!$('#gameCard').classList.contains('hidden')) showGame(state.current);
+  // The message came from the backend in the previous language; don't leave it half-translated.
+  if (!$('#errorState').classList.contains('hidden')) setStage('empty');
+  if (!$('#view-settings').hidden) renderSettings();
 }
 
 function setError(node, message) {
@@ -99,12 +119,16 @@ function setMode(mode) {
   state.mode = mode;
   document.body.dataset.mode = mode;
   store.set('sr.mode', mode);
-  $('#modeEyebrow').textContent = mode === 'library' ? 'Ваша библиотека Steam' : 'Весь каталог Steam';
+  renderModeText();
   const needsProfile = mode === 'library' && !state.config.steamId;
   $('#libraryNotice').classList.toggle('hidden', !needsProfile);
   $('#rollBtn').disabled = needsProfile || state.rolling;
   if (mode === 'library' && !needsProfile) loadOwnedStats();
   updateSummary();
+}
+
+function renderModeText() {
+  $('#modeEyebrow').textContent = t(state.mode === 'library' ? 'mode.library' : 'mode.store');
 }
 
 // ---------- setup (API key) ----------
@@ -122,32 +146,32 @@ function initSetup() {
     const key = $('#setupKey').value.trim();
     const profile = $('#setupProfile').value.trim();
     setError(errorBox, '');
-    if (!key) return setError(errorBox, 'Вставьте ключ API.');
+    if (!key) return setError(errorBox, t('setup.noKey'));
 
     btn.disabled = true;
-    btn.textContent = 'Проверяем ключ…';
+    btn.textContent = t('setup.checking');
     try {
       const res = await api.saveKey(key);
       if (!res.ok) {
-        const message = res.code === 'BAD_KEY' ? 'Steam не принял этот ключ. Проверьте, что он скопирован полностью.' : res.error;
+        const message = res.code === 'BAD_KEY' ? t('setup.badKey') : res.error;
         return setError(errorBox, message);
       }
       if (profile) {
-        btn.textContent = 'Ищем профиль…';
+        btn.textContent = t('setup.findingProfile');
         const pr = await api.saveProfile(profile);
         if (!pr.ok) {
           await reloadConfig();
           $('#setupKey').value = '';
-          return setError(errorBox, `Ключ сохранён, но профиль не найден: ${pr.error}. Исправьте ссылку или оставьте поле пустым.`);
+          return setError(errorBox, t('setup.profileFailed', { error: pr.error }));
         }
       }
       $('#setupKey').value = '';
       await reloadConfig();
-      toast('Ключ сохранён');
+      toast(t('setup.saved'));
       await afterKeyReady();
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Проверить и сохранить';
+      btn.textContent = t('setup.save');
     }
   });
 }
@@ -176,18 +200,17 @@ async function reloadConfig() {
   renderFilterHelp();
 }
 
-// Follows the "Язык описаний" setting; languages without a translation fall back to Russian.
 function renderFilterHelp() {
-  const t = D.FILTER_HELP[state.config?.lang] || D.FILTER_HELP.russian;
-  $('#filterHelpBtn').setAttribute('aria-label', t.label);
+  const help = D.FILTER_HELP[uiLang()] || D.FILTER_HELP[I.DEFAULT_LANG];
+  $('#filterHelpBtn').setAttribute('aria-label', help.label);
   $('#filterHelpPop').replaceChildren(
-    el('h3', { text: t.title }),
-    el('p', { text: t.lead }),
-    el('h4', { text: t.adviceTitle }),
-    el('ul', {}, t.advice.map((line) => el('li', { text: line }))),
+    el('h3', { text: help.title }),
+    el('p', { text: help.lead }),
+    el('h4', { text: help.adviceTitle }),
+    el('ul', {}, help.advice.map((line) => el('li', { text: line }))),
     el('details', {}, [
-      el('summary', { text: t.detailsSummary }),
-      ...t.details.map((d) => el('p', d.webOnly ? { text: d.text, 'data-web-only': '' } : { text: d.text })),
+      el('summary', { text: help.detailsSummary }),
+      ...help.details.map((d) => el('p', d.webOnly ? { text: d.text, 'data-web-only': '' } : { text: d.text })),
     ]),
   );
 }
@@ -210,24 +233,30 @@ function bindFilterHelp() {
 }
 
 // ---------- filters ----------
+// Rebuilt on every language change; writeFiltersToDom() then restores the checked state and select values.
 function renderStaticFilters() {
-  const presets = $('#presets');
-  for (const p of D.PRESETS) {
-    presets.append(el('button', { class: 'preset', title: p.hint, 'data-preset': p.id, text: p.name, onclick: () => applyPreset(p) }));
-  }
-  const checkList = (container, items, group) => {
-    for (const item of items) {
-      container.append(
+  const year = String(new Date().getFullYear());
+  $('#presets').replaceChildren(
+    ...D.PRESETS.map((p) =>
+      el('button', { class: 'preset', title: t(`preset.${p.id}.hint`, { year }), 'data-preset': p.id, text: t(`preset.${p.id}`), onclick: () => applyPreset(p) }),
+    ),
+  );
+  const checkList = (container, ids, group, prefix) =>
+    container.replaceChildren(
+      ...ids.map((id) =>
         el('label', { class: 'check' }, [
-          el('input', { type: 'checkbox', 'data-f-group': group, value: String(item.id) }),
-          el('span', { text: item.name }),
+          el('input', { type: 'checkbox', 'data-f-group': group, value: String(id) }),
+          el('span', { text: t(`${prefix}.${id}`) }),
         ]),
-      );
-    }
-  };
-  checkList($('#playersList'), D.PLAYERS, 'players');
-  checkList($('#featuresList'), D.FEATURES, 'features');
-  for (const l of D.LANGUAGES) $('#languageSelect').append(el('option', { value: l.id, text: l.name }));
+      ),
+    );
+  checkList($('#playersList'), D.PLAYERS, 'players', 'player');
+  checkList($('#featuresList'), D.FEATURES, 'features', 'feature');
+  $('#languageSelect').replaceChildren(...D.LANGUAGES.map((id) => el('option', { value: id, text: t(`lang.${id || 'any'}`) })));
+  $('#regionSelect').replaceChildren(
+    ...D.REGIONS.map((r) => el('option', { value: r.id, text: `${t(`region.${r.id}`)} (${r.usdOnly ? t('region.usdOnly') : r.currency})` })),
+  );
+  if (state.config) $('#regionSelect').value = state.config.cc;
 }
 
 function applyPreset(preset) {
@@ -384,42 +413,46 @@ function updateSummary() {
   const f = state.filters;
   const parts = [];
   const names = (ids) => ids.map((id) => state.tagNames.get(id) || `#${id}`);
-  if (f.includeTags.length) parts.push(`метки: ${names(f.includeTags).join(', ')}`);
-  if (f.excludeTags.length) parts.push(`без: ${names(f.excludeTags).join(', ')}`);
+  if (f.includeTags.length) parts.push(t('summary.tags', { list: names(f.includeTags).join(', ') }));
+  if (f.excludeTags.length) parts.push(t('summary.without', { list: names(f.excludeTags).join(', ') }));
   if (state.mode === 'store') {
-    if (f.priceMode === 'free') parts.push('бесплатные');
-    if (f.priceMode === 'paid') parts.push('платные');
-    if (f.priceMin || f.priceMax) parts.push(`цена ${f.priceMin || 0}–${f.priceMax || '∞'} ${$('#currencyLabel').textContent}`);
-    if (f.onSale || f.minDiscount) parts.push(f.minDiscount ? `скидка от ${f.minDiscount}%` : 'со скидкой');
-    if (f.language) parts.push(`язык: ${D.LANGUAGES.find((l) => l.id === f.language)?.name}`);
-    if (f.topSellers) parts.push('лидеры продаж');
+    if (f.priceMode === 'free') parts.push(t('summary.free'));
+    if (f.priceMode === 'paid') parts.push(t('summary.paid'));
+    if (f.priceMin || f.priceMax) {
+      parts.push(t('summary.price', { min: String(f.priceMin || 0), max: String(f.priceMax || '∞'), currency: $('#currencyLabel').textContent }));
+    }
+    if (f.onSale || f.minDiscount) parts.push(f.minDiscount ? t('summary.discountFrom', { n: f.minDiscount }) : t('summary.onSale'));
+    if (f.language) parts.push(t('summary.language', { name: t(`lang.${f.language}`) }));
+    if (f.topSellers) parts.push(t('summary.topSellers'));
   } else {
-    const pt = { never: 'не запускались', under: `< ${f.playtimeHours} ч`, over: `≥ ${f.playtimeHours} ч` }[f.playtime];
+    const h = String(f.playtimeHours);
+    const pt = { never: t('summary.neverPlayed'), under: t('summary.under', { h }), over: t('summary.over', { h }) }[f.playtime];
     if (pt) parts.push(pt);
   }
-  if (f.minPositive) parts.push(`${f.minPositive}%+ положительных`);
-  if (f.minReviews || f.maxReviews) parts.push(`отзывов ${f.minReviews || 0}–${f.maxReviews || '∞'}`);
-  if (f.yearFrom || f.yearTo) parts.push(`${f.yearFrom || '…'}–${f.yearTo || '…'} г.`);
-  const cats = [...D.PLAYERS, ...D.FEATURES].filter((c) => [...f.players, ...f.features].includes(c.id));
-  if (cats.length) parts.push(cats.map((c) => c.name.toLowerCase()).join(', '));
+  if (f.minPositive) parts.push(t('summary.positive', { n: f.minPositive }));
+  if (f.minReviews || f.maxReviews) parts.push(t('summary.reviews', { min: String(f.minReviews || 0), max: String(f.maxReviews || '∞') }));
+  if (f.yearFrom || f.yearTo) parts.push(t('summary.years', { from: String(f.yearFrom || '…'), to: String(f.yearTo || '…') }));
+  const cats = [
+    ...D.PLAYERS.filter((id) => f.players.includes(id)).map((id) => t(`player.${id}`)),
+    ...D.FEATURES.filter((id) => f.features.includes(id)).map((id) => t(`feature.${id}`)),
+  ];
+  if (cats.length) parts.push(cats.map((name) => name.toLowerCase()).join(', '));
   if (f.os.length) parts.push(f.os.map((o) => ({ win: 'Windows', mac: 'macOS', linux: 'SteamOS' })[o]).join('/'));
-  if (f.deck !== 'any') parts.push(f.deck === 'verified' ? 'Deck: проверено' : 'Deck: играбельно');
-  if (f.vr !== 'any') parts.push(f.vr === 'only' ? 'только VR' : 'без VR');
-  if (f.hideEarlyAccess) parts.push('без раннего доступа');
-  $('#filterSummary').textContent = parts.length
-    ? parts.join(' · ')
-    : 'Фильтры не заданы — подойдёт любая игра';
+  if (f.deck !== 'any') parts.push(t(f.deck === 'verified' ? 'summary.deckVerified' : 'summary.deckPlayable'));
+  if (f.vr !== 'any') parts.push(t(f.vr === 'only' ? 'summary.vrOnly' : 'summary.noVr'));
+  if (f.hideEarlyAccess) parts.push(t('summary.noEarlyAccess'));
+  $('#filterSummary').textContent = parts.length ? parts.join(' · ') : t('summary.none');
 }
 
 // ---------- tags ----------
 async function loadTags() {
   const res = await api.getTags();
   if (!res.ok) {
-    $('#tagList').replaceChildren(el('div', { class: 'muted small', text: `Не удалось загрузить метки: ${res.error}` }));
+    $('#tagList').replaceChildren(el('div', { class: 'muted small', text: t('tags.loadFailed', { error: res.error }) }));
     return;
   }
   state.tags = res.data;
-  state.tagNames = new Map(res.data.map((t) => [t.id, t.name]));
+  state.tagNames = new Map(res.data.map((tag) => [tag.id, tag.name]));
   renderTags();
   updateSummary();
 }
@@ -458,7 +491,7 @@ function renderTags() {
     ...f.includeTags.map((id) => ['inc', id]),
     ...f.excludeTags.map((id) => ['exc', id]),
   ].map(([cls, id]) =>
-    el('span', { class: `tag-chip ${cls}`, title: 'Убрать', text: state.tagNames.get(id) || `#${id}`, onclick: () => removeTag(id) }),
+    el('span', { class: `tag-chip ${cls}`, title: t('tags.remove'), text: state.tagNames.get(id) || `#${id}`, onclick: () => removeTag(id) }),
   );
   $('#tagSelected').replaceChildren(...chips);
   const count = f.includeTags.length + f.excludeTags.length;
@@ -469,15 +502,15 @@ function renderTags() {
 function renderTagList() {
   if (!state.tags.length) return;
   const q = $('#tagSearch').value.trim().toLowerCase();
-  const list = q ? state.tags.filter((t) => t.name.toLowerCase().includes(q)) : state.tags;
-  const rows = list.slice(0, 200).map((t) => {
-    const st = tagStateOf(t.id);
-    return el('div', { class: `tag-row ${st}`, onclick: () => cycleTag(t.id) }, [
+  const list = q ? state.tags.filter((tag) => tag.name.toLowerCase().includes(q)) : state.tags;
+  const rows = list.slice(0, 200).map((tag) => {
+    const st = tagStateOf(tag.id);
+    return el('div', { class: `tag-row ${st}`, onclick: () => cycleTag(tag.id) }, [
       el('span', { class: 'state' }),
-      el('span', { class: 'name', text: t.name }),
+      el('span', { class: 'name', text: tag.name }),
     ]);
   });
-  if (!rows.length) rows.push(el('div', { class: 'muted small', text: 'Ничего не найдено' }));
+  if (!rows.length) rows.push(el('div', { class: 'muted small', text: t('tags.notFound') }));
   $('#tagList').replaceChildren(...rows);
 }
 
@@ -505,10 +538,10 @@ async function roll() {
   const spin = setInterval(() => {
     if (pool.length) reel.src = pool[tick++ % pool.length];
   }, 90);
-  $('#rollingText').textContent = state.mode === 'library' ? 'Перебираем вашу библиотеку…' : 'Ищем в каталоге Steam…';
+  $('#rollingText').textContent = t(state.mode === 'library' ? 'rolling.library' : 'rolling.store');
   const unsubscribe = api.onRollProgress((p) => {
     pool.push(...p.previews);
-    $('#rollingText').textContent = `Проверено ${fmtNum(p.checked)} из ${fmtNum(p.total)} ${plural(p.total, ['игры', 'игр', 'игр'])}…`;
+    $('#rollingText').textContent = t('rolling.progress', { checked: p.checked, total: p.total });
   });
 
   const started = Date.now();
@@ -527,11 +560,11 @@ async function roll() {
 
   if (!res.ok) {
     if (res.code === 'BAD_KEY' && !state.config.web) {
-      toast('Ключ API больше не действует — введите новый', true);
+      toast(t('error.keyExpired'), true);
       await reloadConfig();
       return openSetup();
     }
-    $('#errorTitle').textContent = ERROR_TITLES[res.code] || 'Что-то пошло не так';
+    $('#errorTitle').textContent = t(I.has(`errorTitle.${res.code}`) ? `errorTitle.${res.code}` : 'errorTitle.default');
     $('#errorText').textContent = res.error;
     setStage('error');
     return;
@@ -540,37 +573,21 @@ async function roll() {
   addToHistory(res.data);
 }
 
-const ERROR_TITLES = {
-  NO_RESULTS: 'Ничего не нашлось',
-  NO_MATCH: 'Ничего не нашлось',
-  BAD_FILTERS: 'Фильтры противоречат друг другу',
-  SAMPLE_LIMIT: 'Упёрлись в лимит проверки',
-  RATE_LIMIT: 'Steam ограничил запросы',
-  NETWORK: 'Нет связи со Steam',
-  NO_PROFILE: 'Нужен профиль Steam',
-  BAD_KEY: 'Сайт временно не работает',
-  TOO_MANY: 'Слишком много запросов',
-  BUSY: 'Сервер занят',
-  OFFLINE: 'Нет связи с сервером',
-  SERVER: 'Ошибка сервера',
-};
-
 function showGame(g) {
   state.current = g;
   setStage('game');
   $('#gName').textContent = g.name;
   if (!g.poolSize) $('#gPool').textContent = '';
-  else if (g.playtime !== null) $('#gPool').textContent = `Выбрано из ${fmtNum(g.poolSize)} игр библиотеки`;
-  else $('#gPool').textContent = `Подходящих по поиску Steam: ${fmtNum(g.poolSize)}`;
+  else $('#gPool').textContent = t(g.playtime !== null ? 'game.poolLibrary' : 'game.poolStore', { n: g.poolSize });
   $('#gHeader').src = g.header || '';
-  $('#gDesc').textContent = g.description || 'Описание недоступно.';
+  $('#gDesc').textContent = g.description || t('game.noDescription');
 
   const rv = $('#gReviews');
   if (g.reviews && g.reviews.count) {
-    rv.textContent = `${g.reviews.label} (${g.reviews.percent}% из ${fmtNum(g.reviews.count)})`;
+    rv.textContent = t('game.reviewSummary', { label: g.reviews.label, percent: g.reviews.percent, count: g.reviews.count });
     rv.className = g.reviews.percent >= 70 ? 'rv-positive' : g.reviews.percent >= 40 ? 'rv-mixed' : 'rv-negative';
   } else {
-    rv.textContent = 'Нет обзоров';
+    rv.textContent = t('game.noReviews');
     rv.className = '';
   }
   $('#gDate').textContent = g.releaseDate || '—';
@@ -596,7 +613,7 @@ function showGame(g) {
   for (const [key, [icon, title]] of Object.entries(osNames)) {
     if (g.platforms[key]) badges.push(el('span', { class: 'badge', title }, [svgIcon(icon)]));
   }
-  if (D.DECK_LABELS[g.deck]) badges.push(el('span', { class: `badge ${g.deck === 3 ? 'hot' : ''}`, text: `Steam Deck: ${D.DECK_LABELS[g.deck]}` }));
+  if (g.deck > 0) badges.push(el('span', { class: `badge ${g.deck === 3 ? 'hot' : ''}`, text: t('game.deckBadge', { label: t(`deckLabel.${g.deck}`) }) }));
   if (g.vr) badges.push(el('span', { class: 'badge hot', text: 'VR' }));
   if (g.metacritic) {
     const cls = g.metacritic >= 75 ? '' : g.metacritic >= 50 ? 'mid' : 'low';
@@ -604,7 +621,7 @@ function showGame(g) {
   }
   if (g.playtime !== null) {
     const hours = g.playtime / 60;
-    badges.push(el('span', { class: 'badge hot', text: g.playtime ? `Сыграно ${hours < 10 ? hours.toFixed(1) : Math.round(hours)} ч` : 'Ещё не запускалась' }));
+    badges.push(el('span', { class: 'badge hot', text: g.playtime ? t('game.played', { h: hours < 10 ? Math.round(hours * 10) / 10 : Math.round(hours) }) : t('game.notLaunched') }));
   }
   $('#gBadges').replaceChildren(...badges);
 
@@ -612,11 +629,11 @@ function showGame(g) {
   const price = $('#gPrice');
   const p = g.price;
   if (g.playtime !== null) {
-    price.replaceChildren(el('span', { class: 'final', text: 'В библиотеке' }));
+    price.replaceChildren(el('span', { class: 'final', text: t('game.inLibrary') }));
   } else if (!p) {
-    price.replaceChildren(el('span', { class: 'orig', text: 'Цена недоступна' }));
+    price.replaceChildren(el('span', { class: 'orig', text: t('game.noPrice') }));
   } else if (p.free) {
-    price.replaceChildren(el('span', { class: 'final', text: 'Бесплатно' }));
+    price.replaceChildren(el('span', { class: 'final', text: t('game.free') }));
   } else if (p.discount) {
     price.replaceChildren(
       el('span', { class: 'discount', text: `-${p.discount}%` }),
@@ -680,7 +697,7 @@ function renderHistory() {
       el('div', { text: h.name }),
     ]),
   );
-  if (!items.length) items.push(el('div', { class: 'history-empty', text: 'Здесь появятся игры, которые вам выпадут.' }));
+  if (!items.length) items.push(el('div', { class: 'history-empty', text: t('history.empty') }));
   $('#historyList').replaceChildren(...items);
   $('#clearHistory').classList.toggle('hidden', !state.history.length);
 }
@@ -699,30 +716,29 @@ async function loadProfile() {
 
 async function loadOwnedStats(force = false) {
   const box = $('#libraryStats');
-  box.textContent = 'Загружаем библиотеку…';
+  box.textContent = t('library.loading');
   const res = await api.getOwned(force);
   if (!res.ok) {
     box.textContent = res.error;
     return false;
   }
   state.owned = res.data;
-  box.replaceChildren(
-    'В библиотеке ',
-    el('b', { text: fmtNum(res.data.count) }),
-    ` ${plural(res.data.count, ['игра', 'игры', 'игр'])}, не запускались: `,
-    el('b', { text: fmtNum(res.data.unplayed) }),
-  );
+  renderOwnedStats();
   return true;
+}
+
+function renderOwnedStats() {
+  $('#libraryStats').innerHTML = t('library.stats', { count: state.owned.count, unplayed: state.owned.unplayed }, { bold: true });
 }
 
 // ---------- settings ----------
 function renderSettings() {
   const c = state.config;
-  $('#keyStatus').textContent = c.hasKey ? `Сохранён ${c.keyHint}` : 'Не задан';
+  $('#keyStatus').textContent = c.hasKey ? t('settings.keySaved', { hint: c.keyHint }) : t('settings.keyNotSet');
   $('#settingsKeyStorePath').textContent = c.keyStorePath || '';
   renderKeyStorageWarning();
   $('#profileInput').value = '';
-  $('#profileInput').placeholder = c.steamId ? `Текущий: ${c.steamId}` : 'https://steamcommunity.com/id/ваш_ник или SteamID64';
+  $('#profileInput').placeholder = c.steamId ? t('profile.current', { id: c.steamId }) : t('profile.placeholder');
   setError($('#profileError'), '');
   const card = $('#settingsProfile');
   if (state.profile && c.steamId) {
@@ -739,12 +755,11 @@ function renderSettings() {
 }
 
 function initSettings() {
-  for (const r of D.REGIONS) $('#regionSelect').append(el('option', { value: r.id, text: `${r.name} (${r.usdOnly ? 'USD — Steam продаёт в долларах' : r.currency})` }));
   for (const l of D.UI_LANGUAGES) $('#uiLangSelect').append(el('option', { value: l.id, text: l.name }));
 
   $('#changeKey').addEventListener('click', () => openSetup({ cancellable: true }));
   $('#removeKey').addEventListener('click', async () => {
-    if (!confirm('Удалить сохранённый ключ API?')) return;
+    if (!confirm(t('settings.confirmRemoveKey'))) return;
     await api.removeKey();
     await reloadConfig();
     openSetup();
@@ -754,7 +769,7 @@ function initSettings() {
     const btn = $('#saveProfile');
     const input = $('#profileInput').value.trim();
     if (!input && !state.config.steamId) return;
-    if (!input && !confirm('Отвязать профиль Steam?')) return;
+    if (!input && !confirm(t('profile.confirmUnlink'))) return;
     btn.disabled = true;
     const res = await api.saveProfile(input);
     btn.disabled = false;
@@ -763,14 +778,14 @@ function initSettings() {
     await reloadConfig();
     await loadProfile();
     renderSettings();
-    toast(res.data ? `Профиль ${res.data.name} сохранён` : 'Профиль отвязан');
+    toast(res.data ? t('profile.saved', { name: res.data.name }) : t('profile.unlinked'));
     if (res.data && !(await loadOwnedStats(true))) setError($('#profileError'), $('#libraryStats').textContent);
   };
   $('#saveProfile').addEventListener('click', saveProfile);
   $('#profileInput').addEventListener('keydown', (e) => e.key === 'Enter' && saveProfile());
 
   $('#refreshOwned').addEventListener('click', async () => {
-    if (await loadOwnedStats(true)) toast(`Библиотека обновлена: ${fmtNum(state.owned.count)} игр`);
+    if (await loadOwnedStats(true)) toast(t('profile.libraryUpdated', { n: state.owned.count }));
     else toast($('#libraryStats').textContent, true);
   });
 
@@ -779,9 +794,12 @@ function initSettings() {
     const res = await api.saveRegion({ cc: $('#regionSelect').value, lang: $('#uiLangSelect').value });
     if (!res.ok) return toast(res.error, true);
     await reloadConfig();
-    if (langChanged) await loadTags();
+    if (langChanged) {
+      applyLanguage();
+      await loadTags();
+    }
     updateSummary();
-    toast('Регион и язык сохранены');
+    toast(t('region.saved'));
   });
 }
 
@@ -862,9 +880,10 @@ async function init() {
   renderHistory();
 
   const res = await api.getConfig();
-  if (!res.ok) return toast(`Не удалось прочитать настройки: ${res.error}`, true);
+  if (!res.ok) return toast(t('config.failed', { error: res.error }), true);
   state.config = res.data;
   await reloadConfig();
+  applyLanguage();
 
   // The web server refuses to start without a key, and visitors can't enter one anyway.
   if (!state.config.hasKey && !state.config.web) openSetup();

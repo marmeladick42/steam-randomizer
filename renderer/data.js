@@ -29,80 +29,46 @@ window.DATA = {
     playtimeHours: 2,
   },
 
+  // Names and hints come from renderer/i18n.js: preset.<id>, preset.<id>.hint, player.<id>, feature.<id>, lang.<id>, region.<id>.
   PRESETS: [
-    { id: 'gems', name: 'Скрытые жемчужины', hint: '90%+ и не больше 3000 отзывов', filters: { minPositive: 90, minReviews: 50, maxReviews: 3000 } },
-    { id: 'classic', name: 'Проверенная классика', hint: '85%+, от 10 000 отзывов, до 2016 года', filters: { minPositive: 85, minReviews: 10000, yearTo: 2016 } },
-    { id: 'free', name: 'Бесплатные хиты', hint: 'Бесплатно, 80%+, от 1000 отзывов', filters: { priceMode: 'free', minPositive: 80, minReviews: 1000 } },
-    { id: 'coop', name: 'Вечер в коопе', hint: 'Онлайн-кооператив, 80%+', filters: { players: [38], minPositive: 80, minReviews: 300 } },
-    { id: 'fresh', name: 'Свежак', hint: `Вышло в ${new Date().getFullYear()} году, 75%+`, filters: { yearFrom: new Date().getFullYear(), minPositive: 75, minReviews: 30 } },
-    { id: 'sale', name: 'Выгодная скидка', hint: 'Скидка от 50%, 80%+', filters: { onSale: true, minDiscount: 50, minPositive: 80, minReviews: 200 } },
-    { id: 'deck', name: 'Для Steam Deck', hint: 'Проверено для Deck, 80%+', filters: { deck: 'verified', minPositive: 80, minReviews: 200 } },
+    { id: 'gems', filters: { minPositive: 90, minReviews: 50, maxReviews: 3000 } },
+    { id: 'classic', filters: { minPositive: 85, minReviews: 10000, yearTo: 2016 } },
+    { id: 'free', filters: { priceMode: 'free', minPositive: 80, minReviews: 1000 } },
+    { id: 'coop', filters: { players: [38], minPositive: 80, minReviews: 300 } },
+    { id: 'fresh', filters: { yearFrom: new Date().getFullYear(), minPositive: 75, minReviews: 30 } },
+    { id: 'sale', filters: { onSale: true, minDiscount: 50, minPositive: 80, minReviews: 200 } },
+    { id: 'deck', filters: { deck: 'verified', minPositive: 80, minReviews: 200 } },
   ],
 
-  PLAYERS: [
-    { id: 2, name: 'Для одного игрока' },
-    { id: 1, name: 'Для нескольких игроков' },
-    { id: 9, name: 'Кооператив' },
-    { id: 38, name: 'Онлайн-кооператив' },
-    { id: 39, name: 'Кооператив на одном экране' },
-    { id: 48, name: 'Кооператив по LAN' },
-    { id: 49, name: 'PvP' },
-    { id: 36, name: 'Онлайн PvP' },
-    { id: 37, name: 'PvP на одном экране' },
-    { id: 20, name: 'MMO' },
-    { id: 27, name: 'Кроссплатформенный мультиплеер' },
-  ],
+  PLAYERS: [2, 1, 9, 38, 39, 48, 49, 36, 37, 20, 27],
 
-  FEATURES: [
-    { id: 22, name: 'Достижения Steam' },
-    { id: 29, name: 'Коллекционные карточки' },
-    { id: 28, name: 'Полная поддержка контроллеров' },
-    { id: 30, name: 'Мастерская Steam' },
-    { id: 23, name: 'Steam Cloud' },
-    { id: 44, name: 'Remote Play Together' },
-    { id: 62, name: 'Семейный доступ' },
-    { id: 17, name: 'Редактор уровней' },
-  ],
+  FEATURES: [22, 29, 28, 30, 23, 44, 62, 17],
 
-  LANGUAGES: [
-    { id: '', name: 'Любой' },
-    { id: 'russian', name: 'Русский' },
-    { id: 'english', name: 'Английский' },
-    { id: 'ukrainian', name: 'Украинский' },
-    { id: 'german', name: 'Немецкий' },
-    { id: 'french', name: 'Французский' },
-    { id: 'spanish', name: 'Испанский' },
-    { id: 'italian', name: 'Итальянский' },
-    { id: 'polish', name: 'Польский' },
-    { id: 'brazilian', name: 'Португальский (Бразилия)' },
-    { id: 'turkish', name: 'Турецкий' },
-    { id: 'japanese', name: 'Японский' },
-    { id: 'koreana', name: 'Корейский' },
-    { id: 'schinese', name: 'Китайский (упр.)' },
-  ],
+  // '' = any language (lang.any)
+  LANGUAGES: ['', 'russian', 'english', 'ukrainian', 'german', 'french', 'spanish', 'italian', 'polish', 'brazilian', 'turkish',
+    'japanese', 'koreana', 'schinese'],
 
   // currency is what Steam actually charges in the region; Belarus and Turkey are priced in USD by Steam.
   REGIONS: [
-    { id: 'ru', name: 'Россия', currency: '₽' },
-    { id: 'kz', name: 'Казахстан', currency: '₸' },
-    { id: 'ua', name: 'Украина', currency: '₴' },
-    { id: 'by', name: 'Беларусь', currency: '$', usdOnly: true },
-    { id: 'us', name: 'США', currency: '$' },
-    { id: 'de', name: 'Германия (ЕС)', currency: '€' },
-    { id: 'pl', name: 'Польша', currency: 'zł' },
-    { id: 'gb', name: 'Великобритания', currency: '£' },
-    { id: 'tr', name: 'Турция', currency: '$', usdOnly: true },
-    { id: 'br', name: 'Бразилия', currency: 'R$' },
-    { id: 'jp', name: 'Япония', currency: '¥' },
+    { id: 'ru', currency: '₽' },
+    { id: 'kz', currency: '₸' },
+    { id: 'ua', currency: '₴' },
+    { id: 'by', currency: '$', usdOnly: true },
+    { id: 'us', currency: '$' },
+    { id: 'de', currency: '€' },
+    { id: 'pl', currency: 'zł' },
+    { id: 'gb', currency: '£' },
+    { id: 'tr', currency: '$', usdOnly: true },
+    { id: 'br', currency: 'R$' },
+    { id: 'jp', currency: '¥' },
   ],
 
+  // Interface languages, each named in itself; the ids match the keys in renderer/i18n.js.
   UI_LANGUAGES: [
     { id: 'russian', name: 'Русский' },
     { id: 'english', name: 'English' },
     { id: 'ukrainian', name: 'Українська' },
   ],
-
-  DECK_LABELS: { 3: 'Проверено', 2: 'Играбельно', 1: 'Не поддерживается', 0: null },
 
   // Info popover next to the filters heading, keyed by UI_LANGUAGES id. `webOnly` paragraphs are hidden in the desktop app.
   FILTER_HELP: {
