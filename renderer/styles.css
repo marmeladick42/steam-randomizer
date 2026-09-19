@@ -124,14 +124,20 @@ code {
 .signature {
   align-self: center;
   margin: 6px 14px 0 4px;
-  font: italic 300 12px var(--font);
+  font: italic 500 12.5px var(--font);
   letter-spacing: 0.04em;
-  color: #ff2d8a;
-  text-shadow: 0 0 4px rgba(255, 45, 138, 0.9), 0 0 10px rgba(255, 45, 138, 0.6);
+  color: #ff5a8c;
+  text-shadow: 0 0 3px rgba(214, 22, 78, 1), 0 0 9px rgba(214, 22, 78, 0.7);
   transform: rotate(-2deg);
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
+  /* Rotated text gets re-rasterized with a different antialiasing mode whenever
+     the titlebar's layers are rebuilt (e.g. nav hover transitions), which makes it
+     flicker in brightness/weight. Pin it to its own permanent compositing layer. */
+  will-change: transform;
+  backface-visibility: hidden;
+  isolation: isolate;
 }
 .sig-name { position: relative; display: inline-block; margin-left: 2px; }
 .sig-crown {
@@ -141,8 +147,8 @@ code {
   width: 16px;
   height: 9px;
   transform: translateX(-50%);
-  color: #ff2d8a;
-  filter: drop-shadow(0 0 3px rgba(255, 45, 138, 0.9));
+  color: #ff5a8c;
+  filter: drop-shadow(0 0 3px rgba(214, 22, 78, 1));
 }
 .sig-heart { margin-left: 4px; font-style: normal; }
 .drag-space { flex: 1; height: 100%; }
