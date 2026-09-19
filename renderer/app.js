@@ -579,7 +579,7 @@ function showGame(g) {
   $('#gName').textContent = g.name;
   if (!g.poolSize) $('#gPool').textContent = '';
   else $('#gPool').textContent = t(g.playtime !== null ? 'game.poolLibrary' : 'game.poolStore', { n: g.poolSize });
-  $('#gHeader').src = g.header || '';
+  setImage($('#gHeader'), g.header);
   $('#gDesc').textContent = g.description || t('game.noDescription');
 
   const rv = $('#gReviews');
@@ -598,14 +598,26 @@ function showGame(g) {
   // media
   gallery.shots = g.screenshots.length ? g.screenshots : g.header ? [{ thumb: g.header, full: g.header }] : [];
   gallery.index = 0;
+  resetImageCache();
+  gallery.shots.forEach((s) => preload(s.thumb));
   $('#gShots').replaceChildren(
-    ...gallery.shots.map((s, i) => el('img', { src: s.thumb, alt: '', loading: 'lazy', onclick: () => showShot(i) })),
+    ...gallery.shots.map((s, i) => el('img', { class: 'skeleton', src: s.thumb, alt: '', onload: (e) => e.target.classList.remove('skeleton'), onclick: () => showShot(i) })),
   );
   showShot(0);
+  // warm up the remaining full-size shots so switching between them is instant
+  gallery.shots.forEach((s) => preload(s.full));
 
   const bg = $('#stageBg');
-  bg.style.backgroundImage = g.background ? `url("${g.background}")` : g.screenshots[0] ? `url("${g.screenshots[0].full}")` : 'none';
-  bg.classList.add('visible');
+  const bgUrl = g.background || g.screenshots[0]?.full || '';
+  bg.dataset.want = bgUrl;
+  bg.classList.remove('visible');
+  if (bgUrl) {
+    preload(bgUrl).then(() => {
+      if (bg.dataset.want !== bgUrl || $('#gameCard').classList.contains('hidden')) return;
+      bg.style.backgroundImage = `url("${bgUrl}")`;
+      bg.classList.add('visible');
+    });
+  }
 
   // badges
   const badges = [];
@@ -644,6 +656,56 @@ function showGame(g) {
   }
 }
 
+// ---------- image loading ----------
+// Chromium keeps painting an <img>'s previous picture until the new src arrives,
+// so images are swapped only once decoded, and stale ones are dropped right away.
+const imageCache = new Map();
+const loadedImages = new Set();
+
+function preload(url) {
+  if (!imageCache.has(url)) {
+    const img = new Image();
+    img.src = url;
+    imageCache.set(url, img.decode().then(() => loadedImages.add(url), () => {}));
+  }
+  return imageCache.get(url);
+}
+
+function resetImageCache() {
+  imageCache.clear();
+  loadedImages.clear();
+}
+
+// a src-less <img> paints Chromium's broken-image icon, so empty ones get a transparent pixel
+const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+function showImage(img, src, skeleton = false) {
+  img.src = src;
+  img.classList.toggle('skeleton', skeleton);
+}
+
+// placeholder: a low-res version to show while the full one loads;
+// keepOld: leave the current picture up until the new one is ready
+function setImage(img, url, { placeholder, keepOld = false } = {}) {
+  img.dataset.want = url || '';
+  if (!url) return showImage(img, BLANK_IMG);
+  if (img.getAttribute('src') === url) return;
+  if (loadedImages.has(url)) return showImage(img, url);
+  const hasPicture = img.getAttribute('src') && img.getAttribute('src') !== BLANK_IMG;
+  if (!keepOld || !hasPicture) {
+    if (placeholder && loadedImages.has(placeholder)) showImage(img, placeholder);
+    else showImage(img, BLANK_IMG, true);
+  }
+  if (placeholder) {
+    preload(placeholder).then(() => {
+      if (img.dataset.want === url && img.classList.contains('skeleton')) showImage(img, placeholder);
+    });
+  }
+  preload(url).then(() => {
+    if (img.dataset.want === url) showImage(img, url);
+  });
+}
+
 // ---------- screenshots ----------
 const gallery = { shots: [], index: 0 };
 
@@ -651,7 +713,7 @@ function showShot(i) {
   const n = gallery.shots.length;
   gallery.index = n ? (i + n) % n : 0;
   const shot = gallery.shots[gallery.index];
-  $('#gMedia').src = shot ? shot.full : '';
+  setImage($('#gMedia'), shot?.full, { placeholder: shot?.thumb });
   $$('.media-arrow').forEach((b) => b.classList.toggle('hidden', n < 2));
   const strip = $('#gShots');
   [...strip.children].forEach((img, idx) => {
@@ -666,7 +728,7 @@ function showShot(i) {
 
 function renderLightbox() {
   const n = gallery.shots.length;
-  $('#lightboxImg').src = gallery.shots[gallery.index].full;
+  setImage($('#lightboxImg'), gallery.shots[gallery.index].full, { keepOld: true });
   $('#lightboxCount').textContent = `${gallery.index + 1} / ${n}`;
   $$('.lightbox-arrow').forEach((b) => b.classList.toggle('hidden', n < 2));
 }
@@ -677,7 +739,10 @@ function openLightbox() {
   renderLightbox();
 }
 
-const closeLightbox = () => $('#lightbox').classList.add('hidden');
+function closeLightbox() {
+  $('#lightbox').classList.add('hidden');
+  setImage($('#lightboxImg'), null);
+}
 
 // ---------- history ----------
 function addToHistory(g) {
