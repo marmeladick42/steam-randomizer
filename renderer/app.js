@@ -637,7 +637,11 @@ function addToHistory(g) {
 
 function renderHistory() {
   const items = state.history.map((h) =>
-    el('div', { class: 'history-item', title: h.name, onclick: () => showGame(h) }, [
+    el('div', { class: 'history-item', title: h.name, onclick: () => {
+      showGame(h);
+      $('#stage').scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } }, [
       el('img', { src: h.header || '', alt: '', loading: 'lazy' }),
       el('div', { text: h.name }),
     ]),
