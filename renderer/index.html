@@ -18,7 +18,8 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
     <symbol id="i-chevron-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M15 4 7 12l8 8"/></symbol>
     <symbol id="i-chevron-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m9 4 8 8-8 8"/></symbol>
-    <symbol id="i-crown" viewBox="0 0 24 14"><path fill="currentColor" d="M2 11 1 2.5l6 4L12 0l5 6.5 6-4-1 8.5zM2.2 12h19.6v2H2.2z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="7.3" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-crown"viewBox="0 0 24 14"><path fill="currentColor" d="M2 11 1 2.5l6 4L12 0l5 6.5 6-4-1 8.5zM2.2 12h19.6v2H2.2z"/></symbol>
   </svg>
 
   <header class="titlebar">
@@ -112,7 +113,13 @@
     <section class="view" id="view-main" hidden>
       <aside class="sidebar" id="filters">
         <div class="sidebar-head">
-          <span>Фильтры</span>
+          <div class="sidebar-title">
+            <span>Фильтры</span>
+            <div class="info" id="filterHelp">
+              <button class="info-btn" id="filterHelpBtn" aria-expanded="false" aria-controls="filterHelpPop"><svg><use href="#i-info"/></svg></button>
+              <div class="info-pop" id="filterHelpPop" role="tooltip"></div>
+            </div>
+          </div>
           <button class="btn-link" id="resetFilters">Сбросить</button>
         </div>
 

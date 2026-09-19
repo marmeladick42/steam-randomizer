@@ -173,6 +173,40 @@ async function reloadConfig() {
   if (res.ok) state.config = res.data;
   const region = D.REGIONS.find((r) => r.id === state.config.cc);
   $('#currencyLabel').textContent = region ? region.currency : '';
+  renderFilterHelp();
+}
+
+// Follows the "Язык описаний" setting; languages without a translation fall back to Russian.
+function renderFilterHelp() {
+  const t = D.FILTER_HELP[state.config?.lang] || D.FILTER_HELP.russian;
+  $('#filterHelpBtn').setAttribute('aria-label', t.label);
+  $('#filterHelpPop').replaceChildren(
+    el('h3', { text: t.title }),
+    el('p', { text: t.lead }),
+    el('h4', { text: t.adviceTitle }),
+    el('ul', {}, t.advice.map((line) => el('li', { text: line }))),
+    el('details', {}, [
+      el('summary', { text: t.detailsSummary }),
+      ...t.details.map((d) => el('p', d.webOnly ? { text: d.text, 'data-web-only': '' } : { text: d.text })),
+    ]),
+  );
+}
+
+function bindFilterHelp() {
+  const box = $('#filterHelp');
+  const btn = $('#filterHelpBtn');
+  // Hover and focus open it via CSS; a click pins it open for touch screens and keyboard users.
+  // Closing also drops focus, otherwise :focus-within would keep it visible.
+  const setOpen = (open) => {
+    box.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    if (!open && box.contains(document.activeElement)) document.activeElement.blur();
+  };
+  btn.addEventListener('click', () => setOpen(!box.classList.contains('open')));
+  document.addEventListener('click', (e) => {
+    if (!box.contains(e.target)) setOpen(false);
+  });
+  box.addEventListener('keydown', (e) => e.key === 'Escape' && setOpen(false));
 }
 
 // ---------- filters ----------
@@ -820,6 +854,8 @@ async function init() {
   renderStaticFilters();
   bindFilters();
   bindGlobal();
+  bindFilterHelp();
+  renderFilterHelp();
   initSetup();
   initSettings();
   writeFiltersToDom();
