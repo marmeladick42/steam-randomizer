@@ -5,7 +5,11 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 const MIN_ROLL_MS = 1400;
-const HISTORY_LIMIT = 24;
+// Each history entry is a whole game card (screenshots, trailers), so the visible list stays small;
+// "don't repeat previous picks" keeps a separate, much longer list of bare appids (web/server.js MAX_SEEN).
+const HISTORY_DEFAULT = 24;
+const HISTORY_MAX = 100;
+const SEEN_LIMIT = 1000;
 const LEADING_TRAILERS = 2; // the store page shows this many trailers before the screenshots
 
 const state = {
@@ -16,6 +20,8 @@ const state = {
   tags: [],
   tagNames: new Map(),
   history: [],
+  historyLimit: HISTORY_DEFAULT,
+  seen: [],
   current: null,
   rolling: false,
   owned: null,
@@ -553,7 +559,7 @@ async function roll() {
   const res = await api.roll({
     mode: state.mode,
     filters: state.filters,
-    history: state.history.map((h) => h.appid),
+    history: state.filters.noRepeat ? state.seen : [],
   });
   await wait(Math.max(0, MIN_ROLL_MS - (Date.now() - started)));
 
@@ -838,8 +844,33 @@ function stopTrailer() {
 
 // ---------- history ----------
 function addToHistory(g) {
-  state.history = [g, ...state.history.filter((h) => h.appid !== g.appid)].slice(0, HISTORY_LIMIT);
+  state.history = [g, ...state.history.filter((h) => h.appid !== g.appid)].slice(0, state.historyLimit);
+  state.seen = [g.appid, ...state.seen.filter((id) => id !== g.appid)].slice(0, SEEN_LIMIT);
   store.set('sr.history', state.history);
+  store.set('sr.seen', state.seen);
+  renderHistory();
+}
+
+// The visible list only; "don't repeat" keeps remembering these games unless `seen` is cleared too.
+function clearHistory({ seen = true } = {}) {
+  state.history = [];
+  store.set('sr.history', []);
+  if (seen) {
+    state.seen = [];
+    store.set('sr.seen', []);
+  }
+  renderHistory();
+}
+
+const clampHistoryLimit = (n) => (Number.isInteger(n) && n >= 1 ? Math.min(n, HISTORY_MAX) : HISTORY_DEFAULT);
+
+function setHistoryLimit(n) {
+  state.historyLimit = n;
+  store.set('sr.historyLimit', n);
+  if (state.history.length > n) {
+    state.history = state.history.slice(0, n);
+    store.set('sr.history', state.history);
+  }
   renderHistory();
 }
 
@@ -909,6 +940,11 @@ function renderSettings() {
   $('#refreshOwned').classList.toggle('hidden', !c.steamId);
   $('#regionSelect').value = c.cc;
   $('#uiLangSelect').value = c.lang;
+  $('#historyLimitInput').value = state.historyLimit;
+  $('#historyLimitHint').textContent = t('historyLimit.limitHint', { max: HISTORY_MAX });
+  $('#resetRecentHint').textContent = t('historyLimit.resetRecentHint', { seen: SEEN_LIMIT });
+  $('#resetAllHint').textContent = t('historyLimit.resetAllHint', { seen: SEEN_LIMIT });
+  setError($('#historyLimitError'), '');
 }
 
 function initSettings() {
@@ -958,6 +994,30 @@ function initSettings() {
     updateSummary();
     toast(t('region.saved'));
   });
+
+  const input = $('#historyLimitInput');
+  input.max = HISTORY_MAX;
+  const saveHistoryLimit = () => {
+    const n = Number(input.value);
+    if (!Number.isInteger(n) || n < 1 || n > HISTORY_MAX) {
+      return setError($('#historyLimitError'), t('historyLimit.invalid', { max: HISTORY_MAX }));
+    }
+    setError($('#historyLimitError'), '');
+    setHistoryLimit(n);
+    toast(t('historyLimit.saved', { n }));
+  };
+  $('#saveHistoryLimit').addEventListener('click', saveHistoryLimit);
+  input.addEventListener('keydown', (e) => e.key === 'Enter' && saveHistoryLimit());
+
+  $('#resetRecent').addEventListener('click', () => {
+    clearHistory({ seen: false });
+    toast(t('historyLimit.recentReset'));
+  });
+  $('#resetSeen').addEventListener('click', () => {
+    if (!confirm(t('historyLimit.confirmResetAll'))) return;
+    clearHistory();
+    toast(t('historyLimit.allReset'));
+  });
 }
 
 // ---------- boot ----------
@@ -981,11 +1041,7 @@ function bindGlobal() {
   $('#gReroll').addEventListener('click', roll);
   $('#gOpenSteam').addEventListener('click', () => state.current && api.openApp(state.current.appid));
   $('#gOpenWeb').addEventListener('click', () => state.current && api.open(state.current.storeUrl));
-  $('#clearHistory').addEventListener('click', () => {
-    state.history = [];
-    store.set('sr.history', []);
-    renderHistory();
-  });
+  $('#clearHistory').addEventListener('click', () => clearHistory());
   // a screenshot opens the lightbox; a trailer's poster only shows when its player is gone (after an error,
   // or where trailers can't play), and a click on it tries again
   $('#gMedia').addEventListener('click', () => (currentSlide()?.hls ? playTrailer($('.media-main')) : openLightbox()));
@@ -1026,7 +1082,10 @@ async function init() {
     state.filters = normalizeFilters({ ...D.DEFAULT_FILTERS, ...saved.filters });
     state.preset = saved.preset || null;
   }
-  state.history = store.get('sr.history', []);
+  state.historyLimit = clampHistoryLimit(store.get('sr.historyLimit', HISTORY_DEFAULT));
+  state.history = store.get('sr.history', []).slice(0, state.historyLimit);
+  // before the separate list existed, the visible history was what "don't repeat" remembered
+  state.seen = store.get('sr.seen', null) || state.history.map((h) => h.appid);
   state.mode = store.get('sr.mode', 'store') === 'library' ? 'library' : 'store';
 
   renderStaticFilters();

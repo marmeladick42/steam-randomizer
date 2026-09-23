@@ -15,6 +15,7 @@ const CONFIG_FILE = path.join(ROOT, 'server.env');
 
 const MAX_BODY = 64 * 1024;
 const MAX_ROLLS_AT_ONCE = 4;
+const MAX_SEEN = 1000; // "don't repeat previous picks" remembers this many appids (renderer SEEN_LIMIT)
 const OWNED_TTL = 30 * 60e3;
 const OWNED_FORCE_MIN_AGE = 60e3; // "refresh library" can't bypass the cache more often than this
 const OWNED_CACHE_MAX = 300;
@@ -255,7 +256,7 @@ async function handleRoll(req, res, body) {
   const mode = body.mode === 'library' ? 'library' : 'store';
   const filters = cleanFilters(body.filters);
   randomizer.assertConsistent(filters, { library: mode === 'library' });
-  const history = idList(body.history, 100);
+  const history = idList(body.history, MAX_SEEN);
   if (mode === 'library' || filters.excludeOwned) steamIdOf(body);
 
   if (activeRolls >= MAX_ROLLS_AT_ONCE) {

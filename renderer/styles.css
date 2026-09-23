@@ -277,6 +277,10 @@ select option { background: var(--panel); }
 
 .input-row { display: flex; gap: 8px; }
 .input-row input { flex: 1; }
+/* a short input with its button attached, e.g. a number and "Save" */
+.input-group { display: inline-flex; }
+.input-group input { width: 120px; border-radius: 2px 0 0 2px; }
+.input-group button { border-radius: 0 2px 2px 0; }
 
 .field { display: block; margin: 18px 0; }
 .field-label { display: block; margin-bottom: 6px; color: var(--white); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -1159,6 +1163,15 @@ input[type="range"]:focus { box-shadow: none; }
 .profile-card img { width: 48px; height: 48px; border: 1px solid var(--accent); box-shadow: var(--glow); }
 .profile-card b { display: block; color: var(--white); font-weight: 500; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+/* Title and hint on the left, the control on the right; the rows share one grid, so every control
+   is as wide as the widest one. */
+.setting-rows { display: grid; grid-template-columns: 1fr auto; column-gap: 24px; margin-top: 10px; border-top: 1px solid var(--line-2); }
+.setting-row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line-2); }
+.setting-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.setting-row > :nth-child(2) { justify-self: stretch; }
+.setting-row-title { display: block; color: var(--white); font-size: 14px; }
+.setting-row-hint { display: block; margin-top: 2px; color: var(--text-dim); font-size: 12.5px; }
+.setting-row > .form-error { grid-column: 1 / -1; margin: 12px 0 0; }
 
 /* ---------- Overlays ---------- */
 .lightbox {

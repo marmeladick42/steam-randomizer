@@ -399,6 +399,38 @@
           </div>
           <button class="btn-accent" id="saveRegion" data-i18n="region.apply">Применить</button>
         </div>
+
+        <div class="panel setting">
+          <div class="setting-head"><h2 data-i18n="history.title">Недавно выпавшие</h2></div>
+          <p class="muted" data-web-only data-i18n="region.webNote">Настройки сохраняются только в этом браузере.</p>
+          <div class="setting-rows">
+            <div class="setting-row">
+              <div>
+                <label class="setting-row-title" for="historyLimitInput" data-i18n="historyLimit.label">Сколько игр показывать</label>
+                <span class="setting-row-hint" id="historyLimitHint"></span>
+              </div>
+              <div class="input-group">
+                <input type="number" min="1" step="1" id="historyLimitInput">
+                <button class="btn-accent" id="saveHistoryLimit" data-i18n="common.save">Сохранить</button>
+              </div>
+              <div class="form-error" id="historyLimitError" hidden></div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <span class="setting-row-title" data-i18n="historyLimit.resetRecent">Сбросить недавние</span>
+                <span class="setting-row-hint" id="resetRecentHint"></span>
+              </div>
+              <button class="btn-soft" id="resetRecent" data-i18n="historyLimit.reset">Сбросить</button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <span class="setting-row-title" data-i18n="historyLimit.resetAll">Сбросить всё</span>
+                <span class="setting-row-hint" id="resetAllHint"></span>
+              </div>
+              <button class="btn-danger" id="resetSeen" data-i18n="historyLimit.resetAll">Сбросить всё</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
