@@ -285,7 +285,7 @@ async function handleRoll(req, res, body) {
     } catch {
       /* tags are optional on the card */
     }
-    write({ ok: true, data: await randomizer.describe(result, s, names) });
+    write({ ok: true, data: await randomizer.describe(result, s, names, filters) });
   } catch (err) {
     if (!controller.signal.aborted) write(errorBody(err, 'roll', uiLang(req)));
   } finally {
@@ -317,10 +317,10 @@ async function handleApi(req, res, name, ip) {
 // Electron's index.html plus the browser api shim, with fetch to this server allowed by the CSP.
 function webIndex() {
   const html = fs.readFileSync(path.join(RENDERER, 'index.html'), 'utf8');
-  const csp = "connect-src 'none'";
+  const csp = 'connect-src https://video.fastly.steamstatic.com'; // the trailer player streams from Steam's CDN
   const scripts = '<script src="data.js"></script>';
   if (!html.includes(csp) || !html.includes(scripts)) throw new Error('renderer/index.html changed: update webIndex() in web/server.js');
-  return html.replace(csp, "connect-src 'self'").replace(scripts, `<script src="web-api.js"></script>\n  ${scripts}`);
+  return html.replace(csp, `${csp} 'self'`).replace(scripts, `<script src="web-api.js"></script>\n  ${scripts}`);
 }
 
 function staticFile(urlPath) {

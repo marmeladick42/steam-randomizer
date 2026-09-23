@@ -6,6 +6,7 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 const MIN_ROLL_MS = 1400;
 const HISTORY_LIMIT = 24;
+const LEADING_TRAILERS = 2; // the store page shows this many trailers before the screenshots
 
 const state = {
   config: null,
@@ -108,6 +109,7 @@ function setError(node, message) {
 function showView(name) {
   const viewId = name === 'store' || name === 'library' ? 'main' : name;
   $$('.view').forEach((v) => (v.hidden = v.id !== `view-${viewId}`));
+  if (viewId !== 'main') stopTrailer();
   $('#nav').classList.toggle('locked', name === 'setup');
   $$('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   if (viewId === 'main') setMode(name);
@@ -519,7 +521,10 @@ function setStage(which) {
   for (const [id, name] of [['#emptyState', 'empty'], ['#rollingState', 'rolling'], ['#errorState', 'error'], ['#gameCard', 'game']]) {
     $(id).classList.toggle('hidden', which !== name);
   }
-  if (which !== 'game') $('#stageBg').classList.remove('visible');
+  if (which !== 'game') {
+    stopTrailer();
+    $('#stageBg').classList.remove('visible');
+  }
 }
 
 async function roll() {
@@ -595,17 +600,33 @@ function showGame(g) {
   $('#gPub').textContent = g.publishers.join(', ') || '—';
   $('#gTags').replaceChildren(...(g.tags.length ? g.tags : g.genres).map((t) => el('span', { text: t })));
 
-  // media
-  gallery.shots = g.screenshots.length ? g.screenshots : g.header ? [{ thumb: g.header, full: g.header }] : [];
+  // media in store page order: the first two trailers, every screenshot, then the remaining trailers
+  // (history entries saved before trailers existed have none)
+  const shots = g.screenshots.length ? g.screenshots : g.header ? [{ thumb: g.header, full: g.header }] : [];
+  // a stretched 293x165 thumb looks worse than a screenshot behind the play button
+  const trailers = (g.trailers || []).map((tr) => ({
+    thumb: tr.thumb,
+    full: tr.poster || shots[0]?.full || tr.thumb,
+    hls: tr.hls,
+    name: tr.name,
+    category: tr.category,
+  }));
+  gallery.slides = [...trailers.slice(0, LEADING_TRAILERS), ...shots, ...trailers.slice(LEADING_TRAILERS)];
   gallery.index = 0;
   resetImageCache();
-  gallery.shots.forEach((s) => preload(s.thumb));
+  gallery.slides.forEach((s) => preload(s.thumb));
   $('#gShots').replaceChildren(
-    ...gallery.shots.map((s, i) => el('img', { class: 'skeleton', src: s.thumb, alt: '', onload: (e) => e.target.classList.remove('skeleton'), onclick: () => showShot(i) })),
+    ...gallery.slides.map((s, i) =>
+      el('div', { class: s.hls ? 'shot trailer' : 'shot', title: s.name || '', onclick: () => showSlide(i) }, [
+        el('img', { class: 'skeleton', src: s.thumb, alt: '', onload: (e) => e.target.classList.remove('skeleton') }),
+        s.hls && svgIcon('i-play'),
+      ]),
+    ),
   );
-  showShot(0);
-  // warm up the remaining full-size shots so switching between them is instant
-  gallery.shots.forEach((s) => preload(s.full));
+  showSlide(0);
+  // warm up the remaining full-size shots so switching between them is instant;
+  // trailer posters are heavy and load only when their slide is opened
+  shots.forEach((s) => preload(s.full));
 
   const bg = $('#stageBg');
   const bgUrl = g.background || g.screenshots[0]?.full || '';
@@ -706,42 +727,113 @@ function setImage(img, url, { placeholder, keepOld = false } = {}) {
   });
 }
 
-// ---------- screenshots ----------
-const gallery = { shots: [], index: 0 };
+// ---------- screenshots and trailers ----------
+// A slide is { thumb, full } for a screenshot, plus { hls, name } for a trailer, whose `full` is its poster.
+const gallery = { slides: [], index: 0 };
+const currentSlide = () => gallery.slides[gallery.index];
 
-function showShot(i) {
-  const n = gallery.shots.length;
+function showSlide(i) {
+  stopTrailer();
+  const n = gallery.slides.length;
   gallery.index = n ? (i + n) % n : 0;
-  const shot = gallery.shots[gallery.index];
-  setImage($('#gMedia'), shot?.full, { placeholder: shot?.thumb });
+  const slide = currentSlide();
+  setImage($('#gMedia'), slide?.full, { placeholder: slide?.thumb });
   $$('.media-arrow').forEach((b) => b.classList.toggle('hidden', n < 2));
   const strip = $('#gShots');
-  [...strip.children].forEach((img, idx) => {
-    img.classList.toggle('active', idx === gallery.index);
+  [...strip.children].forEach((shot, idx) => {
+    shot.classList.toggle('active', idx === gallery.index);
     if (idx !== gallery.index) return;
     // keep the active thumb visible without scrolling the page itself
-    if (img.offsetLeft < strip.scrollLeft) strip.scrollLeft = img.offsetLeft;
-    else if (img.offsetLeft + img.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = img.offsetLeft + img.offsetWidth - strip.clientWidth;
+    if (shot.offsetLeft < strip.scrollLeft) strip.scrollLeft = shot.offsetLeft;
+    else if (shot.offsetLeft + shot.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = shot.offsetLeft + shot.offsetWidth - strip.clientWidth;
   });
-  if (!$('#lightbox').classList.contains('hidden')) renderLightbox();
+  const lightboxOpen = !$('#lightbox').classList.contains('hidden');
+  if (lightboxOpen) renderLightbox();
+  // a trailer starts on its own, in the lightbox while that is open
+  if (slide?.hls && TrailerPlayer.supported) playTrailer(lightboxOpen ? $('.lightbox-view') : $('.media-main'));
 }
 
 function renderLightbox() {
-  const n = gallery.shots.length;
-  setImage($('#lightboxImg'), gallery.shots[gallery.index].full, { keepOld: true });
+  const n = gallery.slides.length;
+  const slide = currentSlide();
+  setImage($('#lightboxImg'), slide.full, { keepOld: true });
+  // a trailer's stream URL is no use in a browser tab, so there is no full-size link for it
+  $('#lightboxFull').style.visibility = slide.hls ? 'hidden' : '';
   $('#lightboxCount').textContent = `${gallery.index + 1} / ${n}`;
   $$('.lightbox-arrow').forEach((b) => b.classList.toggle('hidden', n < 2));
 }
 
+// A playing trailer moves between the card and the lightbox and carries on from the same moment.
 function openLightbox() {
-  if (!gallery.shots.length) return;
+  if (!gallery.slides.length) return;
+  const start = player?.time() ?? 0;
+  stopTrailer();
   $('#lightbox').classList.remove('hidden');
   renderLightbox();
+  if (currentSlide().hls && TrailerPlayer.supported) playTrailer($('.lightbox-view'), { start });
 }
 
 function closeLightbox() {
+  const start = player?.time() ?? 0;
+  stopTrailer();
   $('#lightbox').classList.add('hidden');
   setImage($('#lightboxImg'), null);
+  if (currentSlide()?.hls && TrailerPlayer.supported) playTrailer($('.media-main'), { start });
+}
+
+// Trailers are HLS streams (Steam no longer serves plain mp4/webm). A trailer starts as soon as its slide
+// is shown; the stream is torn down on every slide change, reroll and view switch, and the player
+// buffers only a little ahead, so a game skipped right away costs little video traffic.
+// Only one trailer plays at a time.
+const PLAYER_KEY = 'sr.trailerPlayer'; // { volume, muted, autoNext, quality }
+const playerPrefs = {
+  get: () => store.get(PLAYER_KEY, {}),
+  set: (patch) => store.set(PLAYER_KEY, { ...store.get(PLAYER_KEY, {}), ...patch }),
+};
+let player = null; // { el, destroy, time } from renderer/player.js
+
+// container: .media-main on the card or .lightbox-view; start: seconds, when moving between the two
+function playTrailer(container, { start = 0 } = {}) {
+  const slide = currentSlide();
+  if (!slide?.hls) return;
+  // a browser that can play HLS neither through MSE nor natively gets the store page, which has its own player
+  if (!TrailerPlayer.supported) return state.current && api.open(state.current.storeUrl);
+  stopTrailer();
+  const inLightbox = container === $('.lightbox-view');
+  const categoryKey = `trailerCategory.${slide.category}`;
+  player = TrailerPlayer.create({
+    src: slide.hls,
+    poster: slide.full,
+    title: slide.name,
+    category: I.has(categoryKey) ? t(categoryKey) : '',
+    start,
+    t,
+    prefs: playerPrefs,
+    // "theater" is the lightbox
+    wide: inLightbox ? 'exit' : 'enter',
+    onWide: () => (inLightbox ? closeLightbox() : openLightbox()),
+    // auto-advance goes to the next slide whatever it is: the next trailer plays, a screenshot is shown
+    onEnded() {
+      const next = gallery.index + 1;
+      if (next >= gallery.slides.length) return false;
+      showSlide(next);
+      return true;
+    },
+    onError() {
+      stopTrailer();
+      toast(t('game.trailerFailed'), true);
+    },
+  });
+  // not focused: Space keeps rolling the next game until the player is clicked
+  container.classList.add('playing');
+  container.append(player.el);
+}
+
+function stopTrailer() {
+  if (!player) return;
+  player.el.parentElement?.classList.remove('playing');
+  player.destroy();
+  player = null;
 }
 
 // ---------- history ----------
@@ -894,15 +986,18 @@ function bindGlobal() {
     store.set('sr.history', []);
     renderHistory();
   });
-  $('#gMedia').addEventListener('click', openLightbox);
-  $('#gMediaPrev').addEventListener('click', () => showShot(gallery.index - 1));
-  $('#gMediaNext').addEventListener('click', () => showShot(gallery.index + 1));
-  $('#lightboxPrev').addEventListener('click', () => showShot(gallery.index - 1));
-  $('#lightboxNext').addEventListener('click', () => showShot(gallery.index + 1));
+  // a screenshot opens the lightbox; a trailer's poster only shows when its player is gone (after an error,
+  // or where trailers can't play), and a click on it tries again
+  $('#gMedia').addEventListener('click', () => (currentSlide()?.hls ? playTrailer($('.media-main')) : openLightbox()));
+  $('#lightboxImg').addEventListener('click', () => currentSlide()?.hls && playTrailer($('.lightbox-view')));
+  $('#gMediaPrev').addEventListener('click', () => showSlide(gallery.index - 1));
+  $('#gMediaNext').addEventListener('click', () => showSlide(gallery.index + 1));
+  $('#lightboxPrev').addEventListener('click', () => showSlide(gallery.index - 1));
+  $('#lightboxNext').addEventListener('click', () => showSlide(gallery.index + 1));
   $('#lightboxClose').addEventListener('click', closeLightbox);
   $('#lightboxFull').addEventListener('click', (e) => {
     e.preventDefault();
-    api.open(gallery.shots[gallery.index].full);
+    api.open(currentSlide().full);
   });
   $('#lightbox').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeLightbox();
@@ -910,8 +1005,8 @@ function bindGlobal() {
   document.addEventListener('keydown', (e) => {
     if (!$('#lightbox').classList.contains('hidden')) {
       if (e.key === 'Escape') closeLightbox();
-      else if (e.key === 'ArrowLeft') showShot(gallery.index - 1);
-      else if (e.key === 'ArrowRight') showShot(gallery.index + 1);
+      else if (e.key === 'ArrowLeft') showSlide(gallery.index - 1);
+      else if (e.key === 'ArrowRight') showSlide(gallery.index + 1);
       else return;
       e.preventDefault();
       return;

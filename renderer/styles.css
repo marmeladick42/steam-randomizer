@@ -813,7 +813,13 @@ input[type="range"]:focus { box-shadow: none; }
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s, background 0.15s;
+  z-index: 1;
 }
+/* keep the arrows off the player's title and control bars, and out of sight while they are hidden */
+.media-main.playing .media-arrow { top: 40px; bottom: 64px; }
+.media-main:has(.player.idle) .media-arrow,
+.media-main:has(.player-progress:hover) .media-arrow,
+.media-main:has(.player.scrubbing) .media-arrow { opacity: 0; pointer-events: none; }
 .media-arrow.prev { left: 0; background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent); }
 .media-arrow.next { right: 0; background: linear-gradient(to left, rgba(0, 0, 0, 0.55), transparent); }
 .media-arrow svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8)); transition: transform 0.15s; }
@@ -821,19 +827,233 @@ input[type="range"]:focus { box-shadow: none; }
 .media-main .media-arrow:hover { opacity: 1; }
 .media-arrow.prev:hover svg { transform: translateX(-2px); }
 .media-arrow.next:hover svg { transform: translateX(2px); }
+
+/* ---------- Trailer player (renderer/player.js), laid out like the Steam store's ---------- */
+/* it covers the poster of a trailer slide: .media-main on the card or .lightbox-view */
+.player {
+  --player-played: var(--accent-deep); /* one flat burgundy instead of Steam's blue */
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  color: var(--white);
+  outline: none;
+  user-select: none;
+}
+.player video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; cursor: pointer; }
+.player.idle,
+.player.idle video { cursor: none; }
+
+.player-top,
+.player-bottom { position: absolute; left: 0; right: 0; transition: opacity 0.25s; }
+.player.idle .player-top,
+.player.idle .player-bottom { opacity: 0; pointer-events: none; }
+.player-top {
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px 22px;
+  background: linear-gradient(rgba(0, 0, 0, 0.8), transparent);
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.player-category { flex: none; padding-right: 10px; border-right: 1px solid rgba(255, 255, 255, 0.4); color: var(--white); }
+.player-title { overflow: hidden; text-overflow: ellipsis; color: #d4d8de; }
+.player-bottom { bottom: 0; padding: 22px 10px 2px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.85)); }
+
+.player-progress { position: relative; display: flex; align-items: center; height: 16px; cursor: pointer; touch-action: none; }
+.player-track { position: relative; width: 100%; height: 6px; background: rgba(255, 255, 255, 0.2); transition: height 0.12s; }
+.player-progress:hover .player-track,
+.player.scrubbing .player-track { height: 9px; }
+.player-buffered,
+.player-played { position: absolute; top: 0; bottom: 0; left: 0; width: 0; }
+.player-buffered { background: rgba(255, 255, 255, 0.35); }
+.player-played { background: var(--player-played); }
+.player-preview {
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.player-preview.visible { display: flex; }
+.player-preview-img {
+  width: 176px;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--white);
+  background: #000 no-repeat 0 0 / 500% 600%; /* one 5x6 storyboard tile */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+}
+.lightbox-view .player-preview-img,
+.player:fullscreen .player-preview-img { width: 256px; }
+.player-preview.no-image .player-preview-img { display: none; }
+.player-preview-time {
+  padding: 4px 9px;
+  border-radius: 3px;
+  background: var(--white);
+  color: #16171d;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-controls { display: flex; align-items: center; gap: 2px; height: 42px; }
+.player-btn {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: var(--white);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.player-btn:hover { color: var(--accent-soft); }
+.player-btn svg { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)); transition: transform 0.2s; }
+.player-play svg { width: 26px; height: 26px; }
+.player-gear.active { color: var(--accent); }
+.player-gear.active svg { transform: rotate(60deg); }
+/* the player's sliders: `.player input[type="range"]` outranks the app-wide range style (full width, ringed glowing thumb) */
+.player input[type="range"] { height: 16px; margin: 0; cursor: pointer; }
+.player input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--white) var(--fill, 0%), rgba(255, 255, 255, 0.28) var(--fill, 0%));
+}
+.player input[type="range"]::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: none;
+}
+.player-volume { display: flex; align-items: center; }
+.player .player-volume-slider { width: 0; opacity: 0; transition: width 0.15s, opacity 0.15s, margin 0.15s; }
+.player-volume:hover .player-volume-slider,
+.player-volume:focus-within .player-volume-slider { width: 76px; margin: 0 8px 0 2px; opacity: 1; }
+.player-time { margin-left: 6px; color: #e8eaee; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.player-spacer { flex: 1; }
+
+.player-settings { position: relative; }
+.player-menu {
+  position: absolute;
+  right: 0;
+  bottom: 46px;
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: rgba(20, 21, 29, 0.96);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+  font-size: 13px;
+  cursor: default;
+}
+.player-menu > .player-menu-section { width: 132px; margin: 0; padding-right: 14px; border-right: 1px solid var(--line-2); }
+.player-menu-main { width: 230px; }
+.player-menu-section { margin-bottom: 12px; }
+.player-menu-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.player-menu-value { color: var(--white); letter-spacing: 0; text-transform: none; font-size: 12px; }
+.player-qualities { display: flex; flex-direction: column; }
+.player-quality {
+  padding: 5px 8px 5px 24px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.player-quality:hover { background: var(--panel-2); color: var(--white); }
+.player-quality.active { position: relative; color: var(--white); }
+.player-quality.active::before { content: "✓"; position: absolute; left: 8px; color: var(--accent); }
+.player .player-speed-slider { display: block; width: 100%; }
+/* labels under the slider's stops; 6px in from both ends, where the thumb's centre stops */
+.player-speed-ticks { position: relative; height: 14px; margin: 2px 6px 0; color: var(--text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.player-speed-ticks span { position: absolute; transform: translateX(-50%); }
+
+/* shown when a trailer ends and nothing plays next */
+.player-replay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
+  color: var(--white);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: background 0.15s, transform 0.15s;
+}
+.player-replay:hover { background: var(--accent); transform: translate(-50%, -50%) scale(1.06); }
+.player-replay svg { width: 32px; height: 32px; }
+
+.player-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  pointer-events: none;
+}
+.player.loading:not(.paused) .player-spinner { display: block; }
 .shots { position: relative; display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; padding-bottom: 4px; }
-.shots img {
+.shot {
+  position: relative;
   width: 116px;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
   flex: none;
   cursor: pointer;
   opacity: 0.55;
   border: 2px solid transparent;
   transition: opacity 0.15s;
 }
-.shots img:hover { opacity: 1; }
-.shots img.active { opacity: 1; border-color: var(--accent); box-shadow: 0 0 8px rgba(255, 61, 110, 0.5); }
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.shot svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  color: var(--white);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
+}
+.shot:hover { opacity: 1; }
+.shot.active { opacity: 1; border-color: var(--accent); box-shadow: 0 0 8px rgba(255, 61, 110, 0.5); }
 
 .game-info { display: flex; flex-direction: column; min-width: 0; }
 .game-header { width: 100%; aspect-ratio: 460 / 215; object-fit: cover; border-radius: 2px; }
@@ -961,6 +1181,7 @@ input[type="range"]:focus { box-shadow: none; }
 .lightbox-view img { display: block; max-width: 92vw; max-height: calc(100vh - 48px - 110px); }
 .lightbox-arrow {
   position: absolute;
+  z-index: 1;
   top: 50%;
   transform: translateY(-50%);
   width: 48px;

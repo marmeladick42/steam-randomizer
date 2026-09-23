@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; img-src 'self' data: https://*.steamstatic.com https://*.steampowered.com https://*.akamaihd.net; style-src 'self'; script-src 'self'; connect-src 'none'">
+        content="default-src 'self'; img-src 'self' data: https://*.steamstatic.com https://*.steampowered.com https://*.akamaihd.net; media-src https://*.steamstatic.com blob:; style-src 'self'; script-src 'self'; connect-src https://video.fastly.steamstatic.com">
   <title>Steam Randomizer</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -19,6 +19,17 @@
     <symbol id="i-chevron-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M15 4 7 12l8 8"/></symbol>
     <symbol id="i-chevron-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m9 4 8 8-8 8"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="7.3" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor"/><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor"/></symbol>
+    <symbol id="i-replay" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4.2h4.2"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9.5h4l5-4v13l-5-4H3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-volume-low" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9.5h4l5-4v13l-5-4H3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 9a4 4 0 0 1 0 6"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9.5h4l5-4v13l-5-4H3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m15.5 9.5 5 5m0-5-5 5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.08 4.85L10.44 2.12L13.56 2.12L13.92 4.85L15.70 5.59L17.88 3.91L20.09 6.12L18.41 8.30L19.15 10.08L21.88 10.44L21.88 13.56L19.15 13.92L18.41 15.70L20.09 17.88L17.88 20.09L15.70 18.41L13.92 19.15L13.56 21.88L10.44 21.88L10.08 19.15L8.30 18.41L6.12 20.09L3.91 17.88L5.59 15.70L4.85 13.92L2.12 13.56L2.12 10.44L4.85 10.08L5.59 8.30L3.91 6.12L6.12 3.91L8.30 5.59ZM15.3 12a3.3 3.3 0 1 0 -6.6 0a3.3 3.3 0 1 0 6.6 0Z"/></symbol>
+    <symbol id="i-wide" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-unwide" viewBox="0 0 24 24"><rect x="5.5" y="8" width="13" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-fullscreen" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+    <symbol id="i-fullscreen-exit" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></symbol>
     <symbol id="i-crown" viewBox="0 0 24 14"><path fill="currentColor" d="M2 11 1 2.5l6 4L12 0l5 6.5 6-4-1 8.5zM2.2 12h19.6v2H2.2z"/></symbol>
   </svg>
 
@@ -410,6 +421,8 @@
 
   <script src="i18n.js"></script>
   <script src="data.js"></script>
+  <script src="vendor/hls.min.js"></script>
+  <script src="player.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

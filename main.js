@@ -179,7 +179,7 @@ function registerIpc() {
     } catch {
       /* tags are optional on the card */
     }
-    return randomizer.describe(result, s, names);
+    return randomizer.describe(result, s, names, filters);
   });
 
   handle('shell:open', (_e, url) => {
