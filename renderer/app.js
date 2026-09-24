@@ -10,6 +10,7 @@ const MIN_ROLL_MS = 1400;
 const HISTORY_DEFAULT = 24;
 const HISTORY_MAX = 100;
 const SEEN_LIMIT = 1000;
+const VISIBLE_TAGS = 12; // game card tags shown before "show all"
 const LEADING_TRAILERS = 2; // the store page shows this many trailers before the screenshots
 
 const state = {
@@ -584,6 +585,28 @@ async function roll() {
   addToHistory(res.data);
 }
 
+// The first few tags are shown up front, the rest behind a toggle (collapsed again for every game).
+function renderGameTags(tags) {
+  const box = $('#gTags');
+  const chips = tags.map((name, i) => el('span', { class: i < VISIBLE_TAGS ? '' : 'extra', text: name }));
+  const hidden = tags.length - VISIBLE_TAGS;
+  box.classList.remove('expanded');
+  if (hidden <= 0) {
+    box.replaceChildren(...chips);
+    return;
+  }
+  const toggle = el('button', {
+    type: 'button',
+    class: 'tags-toggle',
+    text: t('game.tagsMore', { n: hidden }),
+    onclick: () => {
+      const expanded = box.classList.toggle('expanded');
+      toggle.textContent = expanded ? t('game.tagsLess') : t('game.tagsMore', { n: hidden });
+    },
+  });
+  box.replaceChildren(...chips, toggle);
+}
+
 function showGame(g) {
   state.current = g;
   setStage('game');
@@ -604,7 +627,7 @@ function showGame(g) {
   $('#gDate').textContent = g.releaseDate || '—';
   $('#gDev').textContent = g.developers.join(', ') || '—';
   $('#gPub').textContent = g.publishers.join(', ') || '—';
-  $('#gTags').replaceChildren(...(g.tags.length ? g.tags : g.genres).map((t) => el('span', { text: t })));
+  renderGameTags(g.tags.length ? g.tags : g.genres);
 
   // media in store page order: the first two trailers, every screenshot, then the remaining trailers
   // (history entries saved before trailers existed have none)
