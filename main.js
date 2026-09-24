@@ -226,6 +226,9 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.on('maximize', () => win.webContents.send('window:state', true));
   win.on('unmaximize', () => win.webContents.send('window:state', false));
+  // A frameless window on Windows can come back into focus without passing keyboard focus on to the
+  // page (after a native dialog, a restore from the taskbar), leaving inputs that can't be typed into.
+  win.on('focus', () => win.webContents.focus());
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url);
     return { action: 'deny' };

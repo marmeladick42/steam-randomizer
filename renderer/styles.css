@@ -533,7 +533,10 @@ body[data-mode="store"] .only-library { display: none !important; }
   font-size: 13px;
 }
 .check:hover span { color: var(--white); }
-.check input, .os input { display: none; }
+/* hidden but still focusable, so Tab reaches the checkboxes */
+.check input, .os input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
+.check input:focus-visible + span::before,
+.os input:focus-visible + span { outline: 1px solid var(--accent-2); outline-offset: 1px; }
 .check span { position: relative; padding-left: 24px; }
 .check span::before {
   content: "";
@@ -634,11 +637,17 @@ input[type="range"]:focus { box-shadow: none; }
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   padding: 4px 6px;
-  font-size: 13px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 13px var(--font);
+  text-align: left;
   cursor: pointer;
   border-radius: 2px;
 }
+.tag-row:focus-visible, .tag-chip:focus-visible { outline: 1px solid var(--accent-2); outline-offset: -1px; }
 .tag-row:hover { background: rgba(255, 255, 255, 0.05); color: var(--white); }
 .tag-row .state {
   width: 15px; height: 15px;
@@ -661,7 +670,7 @@ input[type="range"]:focus { box-shadow: none; }
   align-items: center;
   gap: 5px;
   padding: 2px 4px 2px 8px;
-  font-size: 12px;
+  font: 12px var(--font);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -1152,15 +1161,22 @@ input[type="range"]:focus { box-shadow: none; }
 }
 .history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .history-item {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
   background: var(--panel);
+  color: var(--text);
+  font-family: var(--font);
+  text-align: left;
   border-radius: 2px;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.history-item:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--accent), 0 6px 18px rgba(255, 61, 110, 0.25); }
+.history-item:hover, .history-item:focus-visible { outline: none; transform: translateY(-2px); box-shadow: 0 0 0 1px var(--accent), 0 6px 18px rgba(255, 61, 110, 0.25); }
 .history-item img { width: 100%; aspect-ratio: 460 / 215; object-fit: cover; display: block; }
-.history-item div { padding: 5px 8px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-item span { display: block; padding: 5px 8px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .history-empty { color: var(--text-faint); font-size: 13px; grid-column: 1 / -1; }
 
 /* ---------- Settings ---------- */
@@ -1251,6 +1267,22 @@ input[type="range"]:focus { box-shadow: none; }
 }
 .lightbox-close:hover { background: var(--accent); color: var(--white); }
 @keyframes fade { from { opacity: 0; } }
+
+/* confirmation (app.js ask()) */
+.dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 22px 24px 18px;
+  border: 1px solid rgba(255, 61, 110, 0.35);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 30px rgba(255, 61, 110, 0.15);
+  color: var(--text);
+}
+.dialog[open] { animation: fade 0.15s; }
+.dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.dialog p { margin: 0 0 20px; color: var(--white); font-size: 14px; line-height: 1.5; user-select: text; }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+.dialog-buttons button:focus-visible { outline: 1px solid var(--accent-2); outline-offset: 2px; }
 
 /* grey shimmering placeholder for an image that is still loading */
 .skeleton {

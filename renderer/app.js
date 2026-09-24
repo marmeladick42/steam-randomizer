@@ -79,6 +79,19 @@ function toast(message, isError = false) {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// In-page replacement for confirm(): on Windows, Electron's native dialog leaves the window without
+// keyboard focus, and no input can be typed into until the window is switched away from and back.
+function ask(message, okText, { danger = false } = {}) {
+  const dialog = $('#confirmDialog');
+  $('#confirmText').textContent = message;
+  $('#confirmOk').textContent = okText;
+  $('#confirmOk').className = danger ? 'btn-danger' : 'btn-accent';
+  dialog.returnValue = '';
+  dialog.showModal();
+  $('#confirmCancel').focus(); // Enter shouldn't confirm a destructive action by accident
+  return new Promise((resolve) => dialog.addEventListener('close', () => resolve(dialog.returnValue === 'ok'), { once: true }));
+}
+
 // ---------- i18n ----------
 // The interface language is the "Язык интерфейса и описаний" setting (config.lang), shared with Steam descriptions and tags.
 const uiLang = () => state.config?.lang || I.DEFAULT_LANG;
@@ -155,12 +168,13 @@ function initSetup() {
     const key = $('#setupKey').value.trim();
     const profile = $('#setupProfile').value.trim();
     setError(errorBox, '');
-    if (!key) return setError(errorBox, t('setup.noKey'));
+    // an empty field keeps the saved key, e.g. to go on after "the key is saved, but the profile was not found"
+    if (!key && !state.config.hasKey) return setError(errorBox, t('setup.noKey'));
 
     btn.disabled = true;
     btn.textContent = t('setup.checking');
     try {
-      const res = await api.saveKey(key);
+      const res = key ? await api.saveKey(key) : { ok: true };
       if (!res.ok) {
         const message = res.code === 'BAD_KEY' ? t('setup.badKey') : res.error;
         return setError(errorBox, message);
@@ -372,17 +386,26 @@ function onFiltersChanged() {
   saveFilters();
 }
 
+// Blocks start collapsed; the ones the user opened stay open after a restart.
 function bindFilterBlocks() {
+  const open = new Set(store.get('sr.openBlocks', []));
   for (const title of $$('#filters .block-title')) {
     const block = title.parentElement;
+    const id = title.dataset.i18n || title.querySelector('[data-i18n]').dataset.i18n;
     const setCollapsed = (collapsed) => {
       block.classList.toggle('collapsed', collapsed);
       title.setAttribute('aria-expanded', String(!collapsed));
     };
     title.setAttribute('role', 'button');
     title.tabIndex = 0;
-    setCollapsed(true);
-    title.addEventListener('click', () => setCollapsed(!block.classList.contains('collapsed')));
+    setCollapsed(!open.has(id));
+    title.addEventListener('click', () => {
+      const collapsed = !block.classList.contains('collapsed');
+      setCollapsed(collapsed);
+      if (collapsed) open.delete(id);
+      else open.add(id);
+      store.set('sr.openBlocks', [...open]);
+    });
     title.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
@@ -457,7 +480,13 @@ function updateSummary() {
 async function loadTags() {
   const res = await api.getTags();
   if (!res.ok) {
-    $('#tagList').replaceChildren(el('div', { class: 'muted small', text: t('tags.loadFailed', { error: res.error }) }));
+    $('#tagList').replaceChildren(
+      el('div', { class: 'muted small', text: t('tags.loadFailed', { error: res.error }) }),
+      el('button', { type: 'button', class: 'btn-link', text: t('tags.retry'), onclick: () => {
+        $('#tagList').replaceChildren(el('div', { class: 'muted small', text: t('tags.loading') }));
+        loadTags();
+      } }),
+    );
     return;
   }
   state.tags = res.data;
@@ -500,7 +529,7 @@ function renderTags() {
     ...f.includeTags.map((id) => ['inc', id]),
     ...f.excludeTags.map((id) => ['exc', id]),
   ].map(([cls, id]) =>
-    el('span', { class: `tag-chip ${cls}`, title: t('tags.remove'), text: state.tagNames.get(id) || `#${id}`, onclick: () => removeTag(id) }),
+    el('button', { type: 'button', class: `tag-chip ${cls}`, title: t('tags.remove'), text: state.tagNames.get(id) || `#${id}`, onclick: () => removeTag(id) }),
   );
   $('#tagSelected').replaceChildren(...chips);
   const count = f.includeTags.length + f.excludeTags.length;
@@ -512,15 +541,18 @@ function renderTagList() {
   if (!state.tags.length) return;
   const q = $('#tagSearch').value.trim().toLowerCase();
   const list = q ? state.tags.filter((tag) => tag.name.toLowerCase().includes(q)) : state.tags;
+  // the rows are rebuilt on every click; keep keyboard focus on the same tag
+  const focused = $('#tagList').contains(document.activeElement) ? document.activeElement.dataset.tag : null;
   const rows = list.slice(0, 200).map((tag) => {
     const st = tagStateOf(tag.id);
-    return el('div', { class: `tag-row ${st}`, onclick: () => cycleTag(tag.id) }, [
+    return el('button', { type: 'button', class: `tag-row ${st}`, 'data-tag': String(tag.id), onclick: () => cycleTag(tag.id) }, [
       el('span', { class: 'state' }),
       el('span', { class: 'name', text: tag.name }),
     ]);
   });
   if (!rows.length) rows.push(el('div', { class: 'muted small', text: t('tags.notFound') }));
   $('#tagList').replaceChildren(...rows);
+  if (focused) $(`#tagList [data-tag="${focused}"]`)?.focus();
 }
 
 // ---------- rolling ----------
@@ -899,18 +931,19 @@ function setHistoryLimit(n) {
 
 function renderHistory() {
   const items = state.history.map((h) =>
-    el('div', { class: 'history-item', title: h.name, onclick: () => {
+    el('button', { type: 'button', class: 'history-item', title: h.name, onclick: () => {
       showGame(h);
       $('#stage').scrollTo({ top: 0, behavior: 'smooth' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } }, [
       el('img', { src: h.header || '', alt: '', loading: 'lazy' }),
-      el('div', { text: h.name }),
+      el('span', { text: h.name }),
     ]),
   );
   if (!items.length) items.push(el('div', { class: 'history-empty', text: t('history.empty') }));
   $('#historyList').replaceChildren(...items);
   $('#clearHistory').classList.toggle('hidden', !state.history.length);
+  $('#clearHistory').title = t('historyLimit.resetRecentHint', { seen: SEEN_LIMIT });
 }
 
 // ---------- profile / library ----------
@@ -975,7 +1008,7 @@ function initSettings() {
 
   $('#changeKey').addEventListener('click', () => openSetup({ cancellable: true }));
   $('#removeKey').addEventListener('click', async () => {
-    if (!confirm(t('settings.confirmRemoveKey'))) return;
+    if (!(await ask(t('settings.confirmRemoveKey'), t('settings.removeKey'), { danger: true }))) return;
     await api.removeKey();
     await reloadConfig();
     openSetup();
@@ -985,7 +1018,7 @@ function initSettings() {
     const btn = $('#saveProfile');
     const input = $('#profileInput').value.trim();
     if (!input && !state.config.steamId) return;
-    if (!input && !confirm(t('profile.confirmUnlink'))) return;
+    if (!input && !(await ask(t('profile.confirmUnlink'), t('profile.unlink'), { danger: true }))) return;
     btn.disabled = true;
     const res = await api.saveProfile(input);
     btn.disabled = false;
@@ -1036,8 +1069,8 @@ function initSettings() {
     clearHistory({ seen: false });
     toast(t('historyLimit.recentReset'));
   });
-  $('#resetSeen').addEventListener('click', () => {
-    if (!confirm(t('historyLimit.confirmResetAll'))) return;
+  $('#resetSeen').addEventListener('click', async () => {
+    if (!(await ask(t('historyLimit.confirmResetAll'), t('historyLimit.resetAll'), { danger: true }))) return;
     clearHistory();
     toast(t('historyLimit.allReset'));
   });
@@ -1057,6 +1090,11 @@ function bindGlobal() {
     const link = e.target.closest('[data-open]');
     if (link) api.open(link.dataset.open);
   });
+  // Chromium steps a focused number field on the mouse wheel: scrolling the sidebar over the price
+  // would quietly change it. Blurring first lets the wheel just scroll (and commits what was typed).
+  document.addEventListener('wheel', (e) => {
+    if (e.target.matches('input[type="number"]') && e.target === document.activeElement) e.target.blur();
+  }, { passive: true });
   $('#profileChip').addEventListener('click', () => showView('settings'));
   $('#goSettings').addEventListener('click', () => showView('settings'));
   $('#rollBtn').addEventListener('click', roll);
@@ -1064,7 +1102,8 @@ function bindGlobal() {
   $('#gReroll').addEventListener('click', roll);
   $('#gOpenSteam').addEventListener('click', () => state.current && api.openApp(state.current.appid));
   $('#gOpenWeb').addEventListener('click', () => state.current && api.open(state.current.storeUrl));
-  $('#clearHistory').addEventListener('click', () => clearHistory());
+  // like "Reset recent" in the settings: wiping the whole "don't repeat" list is left to "Reset all" there
+  $('#clearHistory').addEventListener('click', () => clearHistory({ seen: false }));
   // a screenshot opens the lightbox; a trailer's poster only shows when its player is gone (after an error,
   // or where trailers can't play), and a click on it tries again
   $('#gMedia').addEventListener('click', () => (currentSlide()?.hls ? playTrailer($('.media-main')) : openLightbox()));
@@ -1082,6 +1121,7 @@ function bindGlobal() {
     if (e.target === e.currentTarget) closeLightbox();
   });
   document.addEventListener('keydown', (e) => {
+    if ($('#confirmDialog').open) return;
     if (!$('#lightbox').classList.contains('hidden')) {
       if (e.key === 'Escape') closeLightbox();
       else if (e.key === 'ArrowLeft') showSlide(gallery.index - 1);
@@ -1090,8 +1130,11 @@ function bindGlobal() {
       e.preventDefault();
       return;
     }
+    // Space belongs to fields, and to a control reached with the keyboard (it presses the button,
+    // opens the filter block); a button that was just clicked with the mouse doesn't keep it.
     const typing = e.target.matches('input, select, textarea');
-    if (!typing && e.code === 'Space' && !$('#view-main').hidden) {
+    const keyboardControl = e.target !== document.body && e.target.matches(':focus-visible');
+    if (!typing && !keyboardControl && !e.defaultPrevented && e.code === 'Space' && !$('#view-main').hidden) {
       e.preventDefault();
       if (!$('#rollBtn').disabled) roll();
     }
